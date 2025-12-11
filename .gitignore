@@ -25,7 +25,8 @@ pom.xml.asc
 figwheel_server.log
 
 # Tooling
-.clj-kondo
+.clj-kondo/
+!.clj-kondo/config.edn
 .cpcache/
 .cache
 

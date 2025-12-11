@@ -17,6 +17,11 @@ clj
 
 # Run tests (when added)
 clj -M:test
+
+# Linting and formatting
+clj -M:lint        # Run clj-kondo static analysis
+clj -M:fmt/check   # Check formatting violations
+clj -M:fmt/fix     # Auto-fix formatting
 ```
 
 ## Architecture
