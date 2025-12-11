@@ -1,4 +1,7 @@
 {:deps
  {org.clojure/clojure {:mvn/version "1.12.4"}}
 
- :paths ["src"]}
+ :paths ["src"]
+
+ :aliases
+ {:run {:main-opts ["-m" "coder-agent.core"]}}}
