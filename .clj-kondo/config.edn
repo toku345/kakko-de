@@ -1,0 +1,5 @@
+{:linters
+ {:unused-namespace {:level :warning}
+  :unused-private-var {:level :warning}
+  :redundant-do {:level :warning}
+  :redundant-let {:level :warning}}}
