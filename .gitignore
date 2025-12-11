@@ -1,0 +1,38 @@
+# Build artifacts
+target/
+/lib/
+*.jar
+*.class
+
+# Leiningen
+/classes/
+/checkouts/
+pom.xml
+pom.xml.asc
+/.lein-*
+.lein-deps-sum
+.lein-repl-history
+.lein-plugins/
+.lein-failures
+
+# REPL
+.nrepl-port
+/.nrepl-history
+
+# ClojureScript / Shadow-cljs
+/node_modules
+.shadow-cljs
+figwheel_server.log
+
+# Tooling
+.clj-kondo
+.cpcache/
+.cache
+
+# IDE
+/.vscode
+/.idea
+
+# Documentation
+/gh-pages
+/_book
