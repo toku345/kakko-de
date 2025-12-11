@@ -4,4 +4,13 @@
  :paths ["src"]
 
  :aliases
- {:run {:main-opts ["-m" "coder-agent.core"]}}}
+ {:run {:main-opts ["-m" "coder-agent.core"]}
+
+  ;; cljfmt - コードフォーマッター
+  :fmt/check
+  {:extra-deps {dev.weavejester/cljfmt {:mvn/version "0.13.0"}}
+   :main-opts ["-m" "cljfmt.main" "check" "src"]}
+
+  :fmt/fix
+  {:extra-deps {dev.weavejester/cljfmt {:mvn/version "0.13.0"}}
+   :main-opts ["-m" "cljfmt.main" "fix" "src"]}}}
