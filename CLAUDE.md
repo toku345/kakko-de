@@ -36,8 +36,28 @@ The namespace convention is `coder-agent.*` (hyphenated in namespace declaration
 
 - **Language:** Clojure
 - **Build:** Clojure CLI (deps.edn)
+- **LLM Client:** openai-clojure
 - **Linting:** clj-kondo
 - **Formatting:** cljfmt
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENAI_API_KEY` | API key | (required) |
+| `OPENAI_API_ENDPOINT` | API endpoint | OpenAI API |
+| `OPENAI_MODEL` | Model name | `gpt-5-mini` |
+
+Setup: `cp .envrc.example .envrc && direnv allow`
+
+## REPL Development
+
+Rich comment in `src/coder_agent/core.clj` contains config for local Qwen3-Coder.
+Evaluate the `def` forms to override settings at runtime.
+
+## Notes
+
+- openai-clojure uses `:api-endpoint` (not `:base-url`) for custom endpoints
 
 ## Git Conventions
 
