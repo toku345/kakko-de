@@ -33,6 +33,7 @@ figwheel_server.log
 # IDE
 /.vscode
 /.idea
+.calva/
 
 # Documentation
 /gh-pages
