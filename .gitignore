@@ -35,6 +35,9 @@ figwheel_server.log
 /.idea
 /.calva
 
+# Environment
+/.envrc
+
 # Documentation
 /gh-pages
 /_book

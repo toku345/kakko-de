@@ -1,5 +1,6 @@
 {:deps
- {org.clojure/clojure {:mvn/version "1.12.4"}}
+ {org.clojure/clojure {:mvn/version "1.12.4"}
+  net.clojars.wkok/openai-clojure {:mvn/version "0.23.0"}}
 
  :paths ["src"]
 
