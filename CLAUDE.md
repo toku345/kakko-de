@@ -31,3 +31,16 @@ The project uses Clojure CLI (deps.edn) for dependency management.
 **Entry point:** `src/coder_agent/core.clj` - Contains the `-main` function
 
 The namespace convention is `coder-agent.*` (hyphenated in namespace declarations, underscored in file paths).
+
+## Tech Stack
+
+- **Language:** Clojure
+- **Build:** Clojure CLI (deps.edn)
+- **Linting:** clj-kondo
+- **Formatting:** cljfmt
+
+## Git Conventions
+
+- Commit messages and PR descriptions in English
+- Follow Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`)
+- Branch naming: `{type}/{short-description}` (e.g., `feat/add-auth`, `fix/null-pointer`)
