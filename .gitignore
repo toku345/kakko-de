@@ -43,4 +43,4 @@ figwheel_server.log
 /_book
 
 # Test artifacts
-test_output.txt
+test_output*
