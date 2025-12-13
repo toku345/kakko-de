@@ -32,6 +32,9 @@ clj -M:run "Your question here"
 # Run tests
 clj -X:test
 
+# Run tests including integration tests (requires OPENAI_API_KEY)
+RUN_INTEGRATION_TESTS=true clj -X:test
+
 # Lint and format
 clj -M:lint
 clj -M:fmt/check
