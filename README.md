@@ -29,11 +29,14 @@ clj -M:run "Your question here"
 ### Development
 
 ```bash
-# Run tests
+# Run unit tests (default, excludes integration)
 clj -X:test
 
-# Run tests including integration tests (requires OPENAI_API_KEY)
-RUN_INTEGRATION_TESTS=true clj -X:test
+# Run integration tests only (requires OPENAI_API_KEY)
+clj -X:test :excludes '[]' :includes '[:integration]'
+
+# Run all tests
+clj -X:test :excludes '[]'
 
 # Lint and format
 clj -M:lint

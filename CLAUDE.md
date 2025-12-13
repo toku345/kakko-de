@@ -15,16 +15,18 @@ clj -M:run
 # Start a REPL
 clj
 
-# Run tests
-clj -X:test   # Recommended: exec-fn style
-clj -M:test   # Alternative: main-opts style
+# Run unit tests (default, excludes integration)
+clj -X:test
+
+# Run integration tests only (requires OPENAI_API_KEY)
+clj -X:test :excludes '[]' :includes '[:integration]'
+
+# Run all tests
+clj -X:test :excludes '[]'
 
 # Run specific tests
 clj -X:test :nses '[coder-agent.core-test]'
 clj -X:test :vars '[coder-agent.core-test/chat-test]'
-
-# Run integration tests (requires running LLM server)
-RUN_INTEGRATION_TESTS=true clj -X:test
 
 # Linting and formatting
 clj -M:lint        # Run clj-kondo static analysis
@@ -75,11 +77,12 @@ Evaluate the `def` forms to override settings at runtime.
 - **Dependency Injection:** Functions accept optional `:call-llm-fn` parameter for testability
 - **No `with-redefs`:** Avoid global state mutation for parallel test safety
 - **Pure function separation:** `extract-content` is pure, `default-call-llm` handles side effects
+- **Test selector:** Integration tests use `^:integration` metadata and are excluded by default
 
 ### Test Structure
 
 - `test/coder_agent/core_test.clj` - Unit tests + mock tests
-- `test/coder_agent/integration_test.clj` - Real API tests (skipped in CI)
+- `test/coder_agent/integration_test.clj` - Real API tests (`^:integration` tagged, excluded by default)
 
 ## Git Conventions
 
