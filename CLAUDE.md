@@ -15,8 +15,16 @@ clj -M:run
 # Start a REPL
 clj
 
-# Run tests (when added)
-clj -M:test
+# Run tests
+clj -X:test   # Recommended: exec-fn style
+clj -M:test   # Alternative: main-opts style
+
+# Run specific tests
+clj -X:test :nses '[coder-agent.core-test]'
+clj -X:test :vars '[coder-agent.core-test/chat-test]'
+
+# Run integration tests (requires running LLM server)
+RUN_INTEGRATION_TESTS=true clj -X:test
 
 # Linting and formatting
 clj -M:lint        # Run clj-kondo static analysis
@@ -37,6 +45,7 @@ The namespace convention is `coder-agent.*` (hyphenated in namespace declaration
 - **Language:** Clojure
 - **Build:** Clojure CLI (deps.edn)
 - **LLM Client:** openai-clojure
+- **Testing:** cognitect-labs/test-runner, matcher-combinators
 - **Linting:** clj-kondo
 - **Formatting:** cljfmt
 
@@ -58,6 +67,19 @@ Evaluate the `def` forms to override settings at runtime.
 ## Notes
 
 - openai-clojure uses `:api-endpoint` (not `:base-url`) for custom endpoints
+
+## Testing
+
+### Design Principles
+
+- **Dependency Injection:** Functions accept optional `:call-llm-fn` parameter for testability
+- **No `with-redefs`:** Avoid global state mutation for parallel test safety
+- **Pure function separation:** `extract-content` is pure, `default-call-llm` handles side effects
+
+### Test Structure
+
+- `test/coder_agent/core_test.clj` - Unit tests + mock tests
+- `test/coder_agent/integration_test.clj` - Real API tests (skipped in CI)
 
 ## Git Conventions
 
