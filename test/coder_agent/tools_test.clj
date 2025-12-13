@@ -1,8 +1,24 @@
 (ns coder-agent.tools-test
   (:require [clojure.test :refer [deftest is testing]]
-            [coder-agent.tools :as tools]))
+            [coder-agent.tools :as tools :refer [FileSystem]]))
 
-(deftest write-file-test
+(defrecord MockFileSystem [calls]
+  FileSystem
+  (tools/write-file! [_ path content]
+    (swap! calls conj {:path path :content content})
+    {:success true :file_path path}))
+
+(defn mock-fs []
+  (->MockFileSystem (atom [])))
+
+(deftest write-file!-test
+  (testing "write-file! records calls with correct arguments."
+    (let [fs (mock-fs)
+          result (tools/write-file! fs "test.txt" "hello")]
+      (is (= {:success true :file_path "test.txt"} result))
+      (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
+
+(deftest ^:integration write-file-test
   (testing "write-file writes content to specified file"
     (let [file-path "test_output.txt"
           content "This is a test content!?"
