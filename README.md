@@ -26,6 +26,23 @@ clj -M:run "Your question here"
 | `OPENAI_API_ENDPOINT` | API endpoint | OpenAI API |
 | `OPENAI_MODEL` | Model name | `gpt-5-mini` |
 
+### Development
+
+```bash
+# Run unit tests (default, excludes integration)
+clj -X:test
+
+# Run integration tests only (requires OPENAI_API_KEY)
+clj -X:test :excludes '[]' :includes '[:integration]'
+
+# Run all tests
+clj -X:test :excludes '[]'
+
+# Lint and format
+clj -M:lint
+clj -M:fmt/check
+```
+
 ## License
 
 MIT

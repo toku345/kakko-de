@@ -7,16 +7,22 @@
  :aliases
  {:run {:main-opts ["-m" "coder-agent.core"]}
 
-  ;; cljfmt - コードフォーマッター
   :fmt/check
   {:extra-deps {dev.weavejester/cljfmt {:mvn/version "0.15.6"}}
-   :main-opts ["-m" "cljfmt.main" "check" "src"]}
+   :main-opts ["-m" "cljfmt.main" "check" "src" "test"]}
 
   :fmt/fix
   {:extra-deps {dev.weavejester/cljfmt {:mvn/version "0.15.6"}}
-   :main-opts ["-m" "cljfmt.main" "fix" "src"]}
+   :main-opts ["-m" "cljfmt.main" "fix" "src" "test"]}
 
-  ;; clj-kondo - 静的解析
   :lint
   {:extra-deps {clj-kondo/clj-kondo {:mvn/version "2025.10.23"}}
-   :main-opts ["-m" "clj-kondo.main" "--lint" "src"]}}}
+   :main-opts ["-m" "clj-kondo.main" "--lint" "src" "test"]}
+
+  :test
+  {:extra-paths ["test"]
+   :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}
+                nubank/matcher-combinators {:mvn/version "3.9.2"}}
+   :main-opts ["-m" "cognitect.test-runner" "-e" ":integration"]
+   :exec-fn cognitect.test-runner.api/test
+   :exec-args {:excludes [:integration]}}}}
