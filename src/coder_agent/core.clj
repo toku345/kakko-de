@@ -2,8 +2,9 @@
   (:require [wkok.openai-clojure.api :as openai]))
 
 (def config
-  {:api-key      (System/getenv "OPENAI_API_KEY")
-   :api-endpoint (System/getenv "OPENAI_API_ENDPOINT")})
+  (cond-> {:api-key      (System/getenv "OPENAI_API_KEY")}
+    (some? (System/getenv "OPENAI_API_ENDPOINT"))
+    (assoc :api-endpoint (System/getenv "OPENAI_API_ENDPOINT"))))
 
 (def model
   (or (System/getenv "OPENAI_MODEL")
