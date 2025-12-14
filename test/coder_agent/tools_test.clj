@@ -24,3 +24,18 @@
           content "This is a test content!?"
           result (tools/write-file {:file_path file-path :content content})]
       (is (= {:success true :file_path file-path} result)))))
+
+(deftest execute-tool-test
+  (testing "execute-tool dispatches to correct tool."
+    (let [mock-write (fn [args] {:called-with args})
+          tool-call {:function {:name "write_file"
+                                :arguments "{\"file_path\":\"test.txt\",\"content\":\"hello\"}"}}
+          result (tools/execute-tool tool-call :tool-impls {"write_file" mock-write})]
+      (is (= {:called-with {:file_path "test.txt" :content "hello"}} result))))
+
+  (testing "execute-tool returns error for unknown tool."
+    (let [tool-call {:function {:name "unknown_tool"
+                                :arguments "{}"}}
+          result (tools/execute-tool tool-call)]
+      (is (= false (:success result)))
+      (is (re-find #"Unknown tool" (:error result))))))

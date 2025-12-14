@@ -1,10 +1,14 @@
 (ns coder-agent.core
-  (:require [wkok.openai-clojure.api :as openai]))
+  (:require [wkok.openai-clojure.api :as openai]
+            [cheshire.core :as json]
+            [coder-agent.tools :as tools]))
 
 (def config
   (cond-> {:api-key      (System/getenv "OPENAI_API_KEY")}
     (some? (System/getenv "OPENAI_API_ENDPOINT"))
     (assoc :api-endpoint (System/getenv "OPENAI_API_ENDPOINT"))))
+
+(def available-tools [tools/write-tool])
 
 (def model
   (or (System/getenv "OPENAI_MODEL")
@@ -27,13 +31,34 @@
 (defn chat
   "Send a message to the LLM and return the response content.
    Options:
-     :call-llm-fn - Function to call LLM (default: default-call-llm)"
-  [user-input & {:keys [call-llm-fn] :or {call-llm-fn default-call-llm}}]
-  (println "🤖 Thinking..")
-  (let [request {:model model
-                 :messages [{:role "user" :content user-input}]}
-        response (call-llm-fn request config)]
-    (extract-content response)))
+     :call-llm-fn - Function to call LLM (default: default-call-llm)
+     :execute-tool-fn - Function to execute tools (default: tools/execute-tool)
+     :tools - Available tools (default: available-tools)"
+  [user-input & {:keys [call-llm-fn execute-tool-fn tools]
+                 :or {call-llm-fn default-call-llm
+                      execute-tool-fn tools/execute-tool
+                      tools available-tools}}]
+  (println "🤖 Thinking with tools..")
+  (loop [messages [{:role "user" :content user-input}]
+         iteration 0]
+    (when (>= iteration 10)
+      (throw (ex-info "Max tool iterations exceeded." {:iterations iteration})))
+    (let [request {:model model :messages messages :tools tools}
+          response (call-llm-fn request config)
+          message (-> response :choices first :message)
+          tool-calls (:tool_calls message)]
+      (if (seq tool-calls)
+        (do
+          (println "🔧 Executing tools..")
+          (let [tools-results (for [tc tool-calls]
+                                {:role "tool"
+                                 :tool_call_id (:id tc)
+                                 :content (json/generate-string (execute-tool-fn tc))})
+                updated (-> messages
+                            (conj message)
+                            (into tools-results))]
+            (recur updated (inc iteration))))
+        (:content message)))))
 
 (defn -main [& args]
   (let [input (first args)]
@@ -49,4 +74,5 @@
 
   (def model "Qwen/Qwen3-Coder-30B-A3B-Instruct")
 
-  (chat "What is Clojure?"))
+  (chat "What is Clojure?")
+  (chat "Write \"Hello, World!\" to a file named hello.txt"))
