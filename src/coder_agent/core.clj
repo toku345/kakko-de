@@ -33,6 +33,7 @@
    Options:
      :call-llm-fn - Function to call LLM (default: default-call-llm)
      :execute-tool-fn - Function to execute tools (default: tools/execute-tool)
+                        Should return a map with :success key. Should not throw.
      :tools - Available tools (default: available-tools)"
   [user-input & {:keys [call-llm-fn execute-tool-fn tools]
                  :or {call-llm-fn default-call-llm
@@ -51,9 +52,14 @@
         (do
           (println "🔧 Executing tools..")
           (let [tools-results (for [tc tool-calls]
-                                {:role "tool"
-                                 :tool_call_id (:id tc)
-                                 :content (json/generate-string (execute-tool-fn tc))})
+                                (let [result (try
+                                               (execute-tool-fn tc)
+                                               (catch Exception e
+                                                 {:success false
+                                                  :error (.getMessage e)}))]
+                                  {:role "tool"
+                                   :tool_call_id (:id tc)
+                                   :content (json/generate-string result)}))
                 updated (-> messages
                             (conj message)
                             (into tools-results))]
