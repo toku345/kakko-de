@@ -25,12 +25,13 @@
       (is (= {:success true :file_path "test.txt"} result))
       (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
 
-(deftest execute-tool-test (testing "execute-tool dispatches to correct tool."
-                             (let [mock-write (fn [args] {:called-with args})
-                                   tool-call {:function {:name "write_file"
-                                                         :arguments "{\"file_path\":\"test.txt\",\"content\":\"hello\"}"}}
-                                   result (tools/execute-tool tool-call :tool-impls {"write_file" mock-write})]
-                               (is (= {:called-with {:file_path "test.txt" :content "hello"}} result))))
+(deftest execute-tool-test
+  (testing "execute-tool dispatches to correct tool."
+    (let [mock-write (fn [args] {:called-with args})
+          tool-call {:function {:name "write_file"
+                                :arguments "{\"file_path\":\"test.txt\",\"content\":\"hello\"}"}}
+          result (tools/execute-tool tool-call :tool-impls {"write_file" mock-write})]
+      (is (= {:called-with {:file_path "test.txt" :content "hello"}} result))))
 
   (testing "execute-tool returns error for unknown tool."
     (let [tool-call {:function {:name "unknown_tool"
