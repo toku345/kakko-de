@@ -34,7 +34,8 @@
   (loop [messages [{:role "user" :content user-input}]
          iteration 0]
     (when (>= iteration 10)
-      (throw (ex-info "Max tool iterations exceeded." {:iterations iteration})))
+      (throw (ex-info "Max tool iterations exceeded." {:iterations iteration
+                                                       :messages messages})))
     (let [request {:model model :messages messages :tools tools}
           response (call-llm-fn request config)
           message (-> response :choices first :message)
