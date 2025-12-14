@@ -36,13 +36,16 @@
 (defn execute-tool
   "Execute a tool call from LLM response."
   [tool-call & {:keys [tool-impls] :or {tool-impls tool-registry}}]
-  (let [{:keys [function]} tool-call
-        {:keys [name arguments]} function
-        args (json/parse-string arguments true)
-        tool-fn (get tool-impls name)]
-    (if tool-fn
-      (tool-fn args)
-      {:success false :error (str "Unknown tool: " name)})))
+  (try
+    (let [{:keys [function]} tool-call
+          {:keys [name arguments]} function
+          args (json/parse-string arguments true)
+          tool-fn (get tool-impls name)]
+      (if tool-fn
+        (tool-fn args)
+        {:success false :error (str "Unknown tool: " name)}))
+    (catch Exception e
+      {:success false :error (str "Tool execution failed: " (.getMessage e))})))
 
 (comment
   ;; REPL Test

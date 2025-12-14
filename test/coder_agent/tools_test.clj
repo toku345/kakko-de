@@ -38,4 +38,11 @@
                                 :arguments "{}"}}
           result (tools/execute-tool tool-call)]
       (is (= false (:success result)))
-      (is (re-find #"Unknown tool" (:error result))))))
+      (is (re-find #"Unknown tool" (:error result)))))
+
+  (testing "execute-tool handles malformed JSON gracefully."
+    (let [tool-call {:function {:name "write_file"
+                                :arguments "not valid json"}}
+          result (tools/execute-tool tool-call)]
+      (is (= false (:success result)))
+      (is (re-find #"Tool execution failed" (:error result))))))
