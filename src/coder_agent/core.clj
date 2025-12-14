@@ -14,15 +14,6 @@
   (or (System/getenv "OPENAI_MODEL")
       "gpt-5-mini"))
 
-(defn extract-content
-  "Extract content from LLM response."
-  [response]
-  (-> response
-      :choices
-      first
-      :message
-      :content))
-
 (defn default-call-llm
   "Default LLM call function using openai-clojure."
   [request config]

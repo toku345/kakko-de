@@ -80,7 +80,6 @@ Evaluate the `def` forms to override settings at runtime.
 - **Protocol/Record pattern:** `FileSystem` protocol enables mock implementations for testing without file I/O
 - **Dependency Injection:** Functions accept optional `:call-llm-fn`, `:execute-tool-fn` parameters for testability
 - **No `with-redefs`:** Avoid global state mutation for parallel test safety
-- **Pure function separation:** `extract-content` is pure, `default-call-llm` handles side effects
 - **Test selector:** Integration tests use `^:integration` metadata and are excluded by default
 
 ### Test Structure

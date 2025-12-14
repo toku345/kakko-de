@@ -3,16 +3,6 @@
             [coder-agent.core :as core]
             [cheshire.core :as json]))
 
-(deftest extract-content-test
-  (testing "extracts content from standard response"
-    (let [response {:choices [{:message {:content "Hello, world!"}}]}]
-      (is (= "Hello, world!"
-             (core/extract-content response)))))
-
-  (testing "returns nil for empty response"
-    (is (nil? (core/extract-content {})))
-    (is (nil? (core/extract-content {:choices []})))))
-
 (deftest chat-test
   (testing "chat returns content from LLM response"
     (let [mock-call-llm (fn [_request _config]
