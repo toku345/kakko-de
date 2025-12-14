@@ -15,8 +15,8 @@
 
 (defn write-file
   "Write content to the specified file path."
-  [{:keys [file_path content]}]
-  (write-file! default-fs file_path content))
+  [{:keys [file_path content]} & {:keys [fs] :or {fs default-fs}}]
+  (write-file! fs file_path content))
 
 (def write-tool
   {:type "function"
