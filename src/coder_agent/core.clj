@@ -44,11 +44,7 @@
         (do
           (println "🔧 Executing tools..")
           (let [tools-results (mapv (fn [tc]
-                                      (let [result (try
-                                                     (execute-tool-fn tc)
-                                                     (catch Exception e
-                                                       {:success false
-                                                        :error (.getMessage e)}))]
+                                      (let [result (execute-tool-fn tc)]
                                         {:role "tool"
                                          :tool_call_id (:id tc)
                                          :content (json/generate-string result)}))
