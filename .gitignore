@@ -41,3 +41,6 @@ figwheel_server.log
 # Documentation
 /gh-pages
 /_book
+
+# Test artifacts
+test_output*

@@ -38,7 +38,9 @@ clj -M:fmt/fix     # Auto-fix formatting
 
 The project uses Clojure CLI (deps.edn) for dependency management.
 
-**Entry point:** `src/coder_agent/core.clj` - Contains the `-main` function
+**Entry point:** `src/coder_agent/core.clj` - Contains the `-main` function and chat loop
+
+**Tools:** `src/coder_agent/tools.clj` - Tool definitions and execution dispatcher
 
 The namespace convention is `coder-agent.*` (hyphenated in namespace declarations, underscored in file paths).
 
@@ -47,6 +49,7 @@ The namespace convention is `coder-agent.*` (hyphenated in namespace declaration
 - **Language:** Clojure
 - **Build:** Clojure CLI (deps.edn)
 - **LLM Client:** openai-clojure
+- **JSON:** cheshire
 - **Testing:** cognitect-labs/test-runner, matcher-combinators
 - **Linting:** clj-kondo
 - **Formatting:** cljfmt
@@ -74,9 +77,9 @@ Evaluate the `def` forms to override settings at runtime.
 
 ### Design Principles
 
-- **Dependency Injection:** Functions accept optional `:call-llm-fn` parameter for testability
+- **Protocol/Record pattern:** `FileSystem` protocol enables mock implementations for testing without file I/O
+- **Dependency Injection:** Functions accept optional `:call-llm-fn`, `:execute-tool-fn` parameters for testability
 - **No `with-redefs`:** Avoid global state mutation for parallel test safety
-- **Pure function separation:** `extract-content` is pure, `default-call-llm` handles side effects
 - **Test selector:** Integration tests use `^:integration` metadata and are excluded by default
 
 ### Test Structure
