@@ -87,6 +87,32 @@ Evaluate the `def` forms to override settings at runtime.
 - `test/coder_agent/core_test.clj` - Unit tests + mock tests
 - `test/coder_agent/integration_test.clj` - Real API tests (`^:integration` tagged, excluded by default)
 
+## Error Handling
+
+### Design Principles
+
+- **Boundary-only catch:** `try/catch` is used only at system boundaries (e.g., `execute-tool`)
+- **Result map pattern:** Functions that can fail return `{:success true/false ...}` instead of throwing
+- **Contract:** `execute-tool` always returns a Result map, never throws exceptions
+
+### Result Map Structure
+
+```clojure
+;; Success
+{:success true :file_path "/path/to/file" ...}
+
+;; Failure
+{:success false :error "Error message"}
+```
+
+### Guidelines
+
+| Layer | Error Handling |
+|-------|----------------|
+| Internal functions (e.g., `write-file!`) | Let exceptions propagate |
+| Boundary functions (e.g., `execute-tool`) | Catch and convert to Result map |
+| Callers of boundary functions | No try/catch needed; check `:success` key |
+
 ## Git Conventions
 
 - Commit messages and PR descriptions in English

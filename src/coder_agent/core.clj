@@ -43,15 +43,12 @@
       (if (seq tool-calls)
         (do
           (println "🔧 Executing tools..")
-          (let [tools-results (for [tc tool-calls]
-                                (let [result (try
-                                               (execute-tool-fn tc)
-                                               (catch Exception e
-                                                 {:success false
-                                                  :error (.getMessage e)}))]
-                                  {:role "tool"
-                                   :tool_call_id (:id tc)
-                                   :content (json/generate-string result)}))
+          (let [tools-results (mapv (fn [tc]
+                                      (let [result (execute-tool-fn tc)]
+                                        {:role "tool"
+                                         :tool_call_id (:id tc)
+                                         :content (json/generate-string result)}))
+                                    tool-calls)
                 updated (-> messages
                             (conj message)
                             (into tools-results))]

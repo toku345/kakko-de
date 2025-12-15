@@ -8,11 +8,8 @@
 (defrecord RealFileSystem []
   FileSystem
   (write-file! [_ path content]
-    (try
-      (spit path content)
-      {:success true :file_path path}
-      (catch Exception e
-        {:success false :error (str "Failed to write file: " (.getMessage e))}))))
+    (spit path content)
+    {:success true :file_path path}))
 
 (def default-fs (->RealFileSystem))
 
