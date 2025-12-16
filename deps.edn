@@ -1,12 +1,15 @@
 {:deps
  {org.clojure/clojure {:mvn/version "1.12.4"}
   net.clojars.wkok/openai-clojure {:mvn/version "0.23.0"}
-  cheshire/cheshire {:mvn/version "6.1.0"}}
+  cheshire/cheshire {:mvn/version "6.1.0"}
+  metosin/malli {:mvn/version "0.20.0"}}
 
  :paths ["src"]
 
  :aliases
- {:run {:main-opts ["-m" "coder-agent.core"]}
+ {:dev {:extra-paths ["dev"]}
+
+  :run {:main-opts ["-m" "coder-agent.core"]}
 
   :fmt/check
   {:extra-deps {dev.weavejester/cljfmt {:mvn/version "0.15.6"}}
