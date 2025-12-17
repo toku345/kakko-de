@@ -39,7 +39,8 @@
 ;; === Function Schemas ===
 
 (def ExecuteToolSchema
-  "Function schema for execute-tool: ToolCall -> ResultMap"
+  "Function schema for execute-tool: ToolCall & optional arguments-> ResultMap.
+   Accepts optional :tool-impls keyword arg for dependency injection."
   [:=> [:cat ToolCall [:* :any]] ResultMap])
 
 ;; === Validation Helpers ===
