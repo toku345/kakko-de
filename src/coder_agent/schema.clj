@@ -40,7 +40,7 @@
 
 (def ExecuteToolSchema
   "Function schema for execute-tool: ToolCall -> ResultMap"
-  [:=> [:cat ToolCall] ResultMap])
+  [:=> [:cat ToolCall [:* :any]] ResultMap])
 
 ;; === Validation Helpers ===
 
