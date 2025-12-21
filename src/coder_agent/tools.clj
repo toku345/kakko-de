@@ -1,5 +1,6 @@
 (ns coder-agent.tools
-  (:require [cheshire.core :as json]))
+  (:require [cheshire.core :as json]
+            [coder-agent.schema :as schema]))
 
 (defprotocol FileSystem
   "Protocol for file system operations."
@@ -35,6 +36,7 @@
 
 (defn execute-tool
   "Execute a tool call from LLM response."
+  {:malli/schema schema/ExecuteToolSchema}
   [tool-call & {:keys [tool-impls] :or {tool-impls tool-registry}}]
   (try
     (let [{:keys [function]} tool-call

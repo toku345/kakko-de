@@ -113,6 +113,53 @@ Evaluate the `def` forms to override settings at runtime.
 | Boundary functions (e.g., `execute-tool`) | Catch and convert to Result map |
 | Callers of boundary functions | No try/catch needed; check `:success` key |
 
+## Schema Validation (Malli)
+
+### Overview
+
+This project uses [malli](https://github.com/metosin/malli) for runtime schema validation of function contracts.
+
+### ResultMap Schema
+
+All tool execution functions return a `ResultMap`:
+
+```clojure
+;; Success case
+{:success true :file_path "/path/to/file" ...}
+
+;; Failure case
+{:success false :error "Error message"}
+```
+
+The schema enforces:
+- `:success` key is always required (boolean)
+- When `:success` is `false`, `:error` key is required (string)
+
+### Development Mode
+
+Start REPL with `:dev` alias and enable instrumentation:
+
+```bash
+clj -A:dev
+```
+
+```clojure
+(require '[user])
+(user/start-instrumentation!)
+```
+
+This enables runtime validation of function schemas with pretty error reporting.
+
+### Testing
+
+Instrumentation is automatically enabled for all tests via `use-fixtures :once`.
+Schema violations will cause test failures with detailed error messages.
+
+### Production
+
+Instrumentation is NOT enabled in production. Schemas serve as documentation
+and are validated only during development and testing.
+
 ## Git Conventions
 
 - Commit messages and PR descriptions in English
