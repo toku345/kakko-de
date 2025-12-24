@@ -3,6 +3,7 @@
    [clojure.java.io :as io]
    [clojure.test :refer [deftest is testing use-fixtures]]
    [coder-agent.core :as core]
+   [coder-agent.llm :as llm]
    [coder-agent.tools :as tools]))
 
 (def test-file-path "test_integration_output.txt")
@@ -20,7 +21,8 @@
   (testing "Real API call returns non-empty response."
     (is (some? (System/getenv "OPENAI_API_KEY"))
         "OPENAI_API_KEY must be set for integration tests.")
-    (let [response (core/chat "Say hello in one word.")]
+    (let [client (llm/make-openai-client)
+          response (core/chat client "Say hello in one word.")]
       (is (string? response))
       (is (pos? (count response))))))
 
