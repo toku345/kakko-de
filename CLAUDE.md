@@ -48,16 +48,6 @@ The project uses Clojure CLI (deps.edn) for dependency management.
 
 The namespace convention is `coder-agent.*` (hyphenated in namespace declarations, underscored in file paths).
 
-## Tech Stack
-
-- **Language:** Clojure
-- **Build:** Clojure CLI (deps.edn)
-- **LLM Client:** openai-clojure
-- **JSON:** cheshire
-- **Testing:** cognitect-labs/test-runner, matcher-combinators
-- **Linting:** clj-kondo
-- **Formatting:** cljfmt
-
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -93,51 +83,13 @@ Evaluate the `def` forms to override settings at runtime.
 
 ## Error Handling
 
-### Design Principles
-
-- **Boundary-only catch:** `try/catch` is used only at system boundaries (e.g., `execute-tool`)
-- **Result map pattern:** Functions that can fail return `{:success true/false ...}` instead of throwing
-- **Contract:** `execute-tool` always returns a Result map, never throws exceptions
-
-### Result Map Structure
-
-```clojure
-;; Success
-{:success true :file_path "/path/to/file" ...}
-
-;; Failure
-{:success false :error "Error message"}
-```
-
-### Guidelines
-
-| Layer | Error Handling |
-|-------|----------------|
-| Internal functions (e.g., `write-file!`) | Let exceptions propagate |
-| Boundary functions (e.g., `execute-tool`) | Catch and convert to Result map |
-| Callers of boundary functions | No try/catch needed; check `:success` key |
+- **Boundary-only catch:** `try/catch` only at system boundaries (e.g., `execute-tool`)
+- **Result map pattern:** `{:success true/false ...}` instead of throwing
+- **Contract:** `execute-tool` always returns a Result map, never throws
 
 ## Schema Validation (Malli)
 
-### Overview
-
-This project uses [malli](https://github.com/metosin/malli) for runtime schema validation of function contracts.
-
-### ResultMap Schema
-
-All tool execution functions return a `ResultMap`:
-
-```clojure
-;; Success case
-{:success true :file_path "/path/to/file" ...}
-
-;; Failure case
-{:success false :error "Error message"}
-```
-
-The schema enforces:
-- `:success` key is always required (boolean)
-- When `:success` is `false`, `:error` key is required (string)
+ResultMap schema: `{:success true ...}` or `{:success false :error "msg"}`.
 
 ### Development Mode
 
@@ -167,5 +119,4 @@ and are validated only during development and testing.
 ## Git Conventions
 
 - Commit messages and PR descriptions in English
-- Follow Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`)
-- Branch naming: `{type}/{short-description}` (e.g., `feat/add-auth`, `fix/null-pointer`)
+- Conventional Commits format
