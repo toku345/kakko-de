@@ -40,6 +40,10 @@ The project uses Clojure CLI (deps.edn) for dependency management.
 
 **Entry point:** `src/coder_agent/core.clj` - Contains the `-main` function and chat loop
 
+**Protocols:** `src/coder_agent/protocols.clj` - Protocol definitions (`LLMClient`, `FileSystem`)
+
+**LLM Client:** `src/coder_agent/llm.clj` - LLM client implementations (`OpenAIClient`, `MockLLMClient`)
+
 **Tools:** `src/coder_agent/tools.clj` - Tool definitions and execution dispatcher
 
 The namespace convention is `coder-agent.*` (hyphenated in namespace declarations, underscored in file paths).
@@ -78,7 +82,7 @@ Evaluate the `def` forms to override settings at runtime.
 ### Design Principles
 
 - **Protocol/Record pattern:** `FileSystem` protocol enables mock implementations for testing without file I/O
-- **Dependency Injection:** Functions accept optional `:call-llm-fn`, `:execute-tool-fn` parameters for testability
+- **Dependency Injection:** Functions accept protocol instances (e.g., `LLMClient`, `FileSystem`) for testability
 - **No `with-redefs`:** Avoid global state mutation for parallel test safety
 - **Test selector:** Integration tests use `^:integration` metadata and are excluded by default
 
