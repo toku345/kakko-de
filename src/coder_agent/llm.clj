@@ -1,7 +1,9 @@
 (ns coder-agent.llm
   "LLM client implementation."
-  (:require [coder-agent.protocols :refer [LLMClient]]
-            [wkok.openai-clojure.api :as openai]))
+  (:require
+   [clojure.string :as string]
+   [coder-agent.protocols :refer [LLMClient]]
+   [wkok.openai-clojure.api :as openai]))
 
 (defrecord OpenAIClient [api-key api-endpoint]
   LLMClient
@@ -12,11 +14,15 @@
        api-endpoint (assoc :api-endpoint api-endpoint)))))
 
 (defn make-openai-client
-  "Create an OpenAIClient from environment variables."
+  "Create an OpenAIClient from environment variables.
+   Throws if OPENAI_API_KEY is not set."
   []
-  (->OpenAIClient
-   (System/getenv "OPENAI_API_KEY")
-   (System/getenv "OPENAI_API_ENDPOINT")))
+  (let [api-key (System/getenv "OPENAI_API_KEY")]
+    (when (or (nil? api-key) (string/blank? api-key))
+      (throw (ex-info "OPENAI_API_KEY environment variable is required"
+                      {:env-var "OPENAI_API_KEY"
+                       :hint "Set the OPENAI_API_KEY. See .envrc.example"})))
+    (->OpenAIClient api-key (System/getenv "OPENAI_API_ENDPOINT"))))
 
 ;; For testing
 (defrecord MockLLMClient [response-fn]
