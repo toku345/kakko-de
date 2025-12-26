@@ -1,8 +1,11 @@
 (ns coder-agent.core-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [coder-agent.core :as core]
             [coder-agent.llm :as llm]
-            [cheshire.core :as json]))
+            [cheshire.core :as json]
+            [coder-agent.test-helper :as helper]))
+
+(use-fixtures :once helper/with-instrumentation)
 
 (deftest chat-test
   (testing "chat returns content from LLM response"
