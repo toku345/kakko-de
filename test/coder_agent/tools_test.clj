@@ -1,14 +1,15 @@
 (ns coder-agent.tools-test
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
+   [coder-agent.protocols :refer [FileSystem write-file!]]
    [coder-agent.schema :as schema]
    [coder-agent.test-helper :as helper]
-   [coder-agent.tools :as tools :refer [FileSystem]]
+   [coder-agent.tools :as tools]
    [malli.core :as m]))
 
 (defrecord MockFileSystem [calls]
   FileSystem
-  (tools/write-file! [_ path content]
+  (write-file! [_ path content]
     (swap! calls conj {:path path :content content})
     {:success true :file_path path}))
 
@@ -20,7 +21,7 @@
 (deftest write-file!-test
   (testing "write-file! records calls with correct arguments."
     (let [fs (mock-fs)
-          result (tools/write-file! fs "test.txt" "hello")]
+          result (write-file! fs "test.txt" "hello")]
       (is (= {:success true :file_path "test.txt"} result))
       (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
 

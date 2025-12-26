@@ -1,10 +1,7 @@
 (ns coder-agent.tools
   (:require [cheshire.core :as json]
+            [coder-agent.protocols :refer [FileSystem write-file!]]
             [coder-agent.schema :as schema]))
-
-(defprotocol FileSystem
-  "Protocol for file system operations."
-  (write-file! [this path content] "Writes content to a file specified by path."))
 
 (defrecord RealFileSystem []
   FileSystem

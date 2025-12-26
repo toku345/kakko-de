@@ -1,35 +1,31 @@
 (ns coder-agent.core
-  (:require [wkok.openai-clojure.api :as openai]
-            [cheshire.core :as json]
+  (:require [cheshire.core :as json]
+            [coder-agent.protocols :refer [chat-completion]]
+            [coder-agent.llm :as llm]
             [coder-agent.tools :as tools]))
 
-(def config
-  (cond-> {:api-key      (System/getenv "OPENAI_API_KEY")}
-    (some? (System/getenv "OPENAI_API_ENDPOINT"))
-    (assoc :api-endpoint (System/getenv "OPENAI_API_ENDPOINT"))))
-
-(def available-tools [tools/write-tool])
-
-(def model
+(def default-model
   (or (System/getenv "OPENAI_MODEL")
       "gpt-5-mini"))
 
-(defn default-call-llm
-  "Default LLM call function using openai-clojure."
-  [request config]
-  (openai/create-chat-completion request config))
+(def available-tools [tools/write-tool])
+
+(def default-client
+  "Default LLM client created from environment variables."
+  (delay (llm/make-openai-client)))
 
 (defn chat
   "Send a message to the LLM and return the response content.
+   client: LLMClient instance
+   user-input: User's input string
    Options:
-     :call-llm-fn - Function to call LLM (default: default-call-llm)
      :execute-tool-fn - Function to execute tools (default: tools/execute-tool)
-                        Should return a map with :success key. Should not throw.
-     :tools - Available tools (default: available-tools)"
-  [user-input & {:keys [call-llm-fn execute-tool-fn tools]
-                 :or {call-llm-fn default-call-llm
-                      execute-tool-fn tools/execute-tool
-                      tools available-tools}}]
+     :tools - Available tools (default: available-tools)
+     :model - Model name (default: default-model)"
+  [client user-input & {:keys [execute-tool-fn tools model]
+                        :or {execute-tool-fn tools/execute-tool
+                             tools available-tools
+                             model default-model}}]
   (println "🤖 Thinking with tools..")
   (loop [messages [{:role "user" :content user-input}]
          iteration 0]
@@ -37,7 +33,7 @@
       (throw (ex-info "Max tool iterations exceeded." {:iterations iteration
                                                        :messages messages})))
     (let [request {:model model :messages messages :tools tools}
-          response (call-llm-fn request config)
+          response (chat-completion client request)
           message (-> response :choices first :message)
           tool-calls (:tool_calls message)]
       (if (seq tool-calls)
@@ -58,16 +54,13 @@
 (defn -main [& args]
   (let [input (first args)]
     (if input
-      (println "Answer:" (chat input))
+      (println "Answer:" (chat @default-client input))
       (println "Please input your question as the first argument."))))
 
 (comment
   ;; REPL: Local Qwen3-Coder configuration
-  (def config
-    {:api-key      "sk-dummy"
-     :api-endpoint "http://localhost:8000/v1"})
+  (def client (llm/->OpenAIClient "sk-dummy" "http://localhost:8000/v1"))
 
-  (def model "Qwen/Qwen3-Coder-30B-A3B-Instruct")
-
-  (chat "What is Clojure?")
-  (chat "Write \"Hello, World!\" to a file named hello.txt"))
+  (chat client "What is Clojure?" :model "Qwen/Qwen3-Coder-30B-A3B-Instruct")
+  (chat client "Write \"Hello, World!\" to a file named test_output_hello.txt"
+        :model "Qwen/Qwen3-Coder-30B-A3B-Instruct"))
