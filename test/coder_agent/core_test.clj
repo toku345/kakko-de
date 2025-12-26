@@ -23,7 +23,14 @@
              (-> @captured-request
                  :messages
                  first
-                 :content))))))
+                 :content)))))
+
+  (testing "chat propagates LLM client exceptions"
+    (let [error-client (llm/make-mock-client
+                        (fn [_request]
+                          (throw (ex-info "API Error" {:status 500}))))]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"API Error"
+                            (core/chat error-client "test input"))))))
 
 (deftest chat-tool-loop-test
   (testing "chat executes tool and returns final response."
