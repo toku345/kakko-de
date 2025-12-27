@@ -43,9 +43,9 @@
 
 (deftest read-file-test
   (testing "read-file reads content from specified file path."
-    (let [testfile-path "test/fixtures/sample.txt"
-          result (tools/read-file {:file_path testfile-path})]
-      (is (= {:success true :content "# Sample.txt\n\nThis is a sample text file for testing purposes.\n"} result)))))
+    (let [fs (mock-fs)
+          result (tools/read-file {:file_path "test.txt"} :fs fs)]
+      (is (= {:success true :content "Mock content of test.txt"} result)))))
 
 (deftest execute-tool-test
   (testing "execute-tool dispatches to correct tool."

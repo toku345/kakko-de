@@ -71,6 +71,8 @@
 
   (write-file! default-fs "test_output_2" "Test content made via protocol!")
 
+  (read-file! default-fs "test/fixtures/sample.txt")
+
   (execute-tool
    {:function
     {:name "write_file"
