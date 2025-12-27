@@ -1,13 +1,16 @@
 (ns coder-agent.tools
   (:require [cheshire.core :as json]
-            [coder-agent.protocols :refer [FileSystem write-file!]]
+            [coder-agent.protocols :refer [FileSystem write-file! read-file!]]
             [coder-agent.schema :as schema]))
 
 (defrecord RealFileSystem []
   FileSystem
   (write-file! [_ path content]
     (spit path content)
-    {:success true :file_path path}))
+    {:success true :file_path path})
+  (read-file! [_ path]
+    (let [content (slurp path)]
+      {:success true :content content})))
 
 (def default-fs (->RealFileSystem))
 
@@ -27,9 +30,24 @@
                                                   :description "Content to write into the file."}}
                            :required ["file_path" "content"]}}})
 
+(defn read-file
+  "Read content from the specified file path."
+  [{:keys [file_path]} & {:keys [fs] :or {fs default-fs}}]
+  (read-file! fs file_path))
+
+(def read-tool
+  {:type "function"
+   :function {:name "read_file"
+              :description "Read content from a file."
+              :parameters {:type "object"
+                           :properties {:file_path {:type "string"
+                                                    :description "Absolute path to the file."}}
+                           :required ["file_path"]}}})
+
 ;; Tool registry & dispatcher
 (def tool-registry
-  {"write_file" write-file})
+  {"write_file" write-file
+   "read_file" read-file})
 
 (defn execute-tool
   "Execute a tool call from LLM response."
@@ -52,6 +70,8 @@
                :content   "This is a test content!?"})
 
   (write-file! default-fs "test_output_2" "Test content made via protocol!")
+
+  (read-file! default-fs "test/fixtures/sample.txt")
 
   (execute-tool
    {:function

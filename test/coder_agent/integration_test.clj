@@ -6,7 +6,8 @@
    [coder-agent.llm :as llm]
    [coder-agent.tools :as tools]))
 
-(def test-file-path "test_integration_output.txt")
+(def test-file-path "test/test_integration_output.txt")
+(def test-read-file-path "test/fixtures/sample.txt")
 
 (defn cleanup-test-file [f]
   (try
@@ -33,3 +34,10 @@
           result (tools/write-file {:file_path file-path :content content})]
       (is (= {:success true :file_path file-path} result))
       (is (= content (slurp file-path))))))
+
+(deftest ^:integration read-file-integration-test
+  (testing "read-file reads from actual file"
+    (let [file-path test-read-file-path
+          content "# Sample.txt\n\nThis is a sample text file for testing purposes.\n"
+          result (tools/read-file {:file_path file-path})]
+      (is (= {:success true :content content} result)))))
