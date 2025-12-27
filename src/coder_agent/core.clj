@@ -8,7 +8,7 @@
   (or (System/getenv "OPENAI_MODEL")
       "gpt-5-mini"))
 
-(def available-tools [tools/write-tool])
+(def available-tools [tools/write-tool tools/read-tool])
 
 (def default-client
   "Default LLM client created from environment variables."
@@ -63,4 +63,8 @@
 
   (chat client "What is Clojure?" :model "Qwen/Qwen3-Coder-30B-A3B-Instruct")
   (chat client "Write \"Hello, World!\" to a file named test_output_hello.txt"
+        :model "Qwen/Qwen3-Coder-30B-A3B-Instruct")
+  (chat client "Read the content of test/fixtures/sample.txt"
+        :model "Qwen/Qwen3-Coder-30B-A3B-Instruct")
+  (chat client "Read the number from test_output_count.txt and increment it by 1, then write it back."
         :model "Qwen/Qwen3-Coder-30B-A3B-Instruct"))

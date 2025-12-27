@@ -1,7 +1,7 @@
 (ns coder-agent.tools-test
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
-   [coder-agent.protocols :refer [FileSystem write-file!]]
+   [coder-agent.protocols :refer [FileSystem read-file! write-file!]]
    [coder-agent.schema :as schema]
    [coder-agent.test-helper :as helper]
    [coder-agent.tools :as tools]
@@ -11,7 +11,10 @@
   FileSystem
   (write-file! [_ path content]
     (swap! calls conj {:path path :content content})
-    {:success true :file_path path}))
+    {:success true :file_path path})
+  (read-file! [_ path]
+    (let [content (str "Mock content of " path)]
+      {:success true :content content})))
 
 (defn mock-fs []
   (->MockFileSystem (atom [])))
@@ -31,6 +34,18 @@
           result (tools/write-file {:file_path "test.txt" :content "hello"} :fs fs)]
       (is (= {:success true :file_path "test.txt"} result))
       (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
+
+(deftest read-file!-test
+  (testing "read-file! returns correct content."
+    (let [fs (mock-fs)
+          result (read-file! fs "test.txt")]
+      (is (= {:success true :content "Mock content of test.txt"} result)))))
+
+(deftest read-file-test
+  (testing "read-file reads content from specified file path."
+    (let [testfile-path "test/fixtures/sample.txt"
+          result (tools/read-file {:file_path testfile-path})]
+      (is (= {:success true :content "# Sample.txt\n\nThis is a sample text file for testing purposes.\n"} result)))))
 
 (deftest execute-tool-test
   (testing "execute-tool dispatches to correct tool."
