@@ -40,8 +40,8 @@
   [{:keys [file_path]} & {:keys [fs] :or {fs default-fs}}]
   (try
     (read-file! fs file_path)
-    (catch java.io.FileNotFoundException _
-      {:success false :error (str "File not found: " file_path)})))
+    (catch java.io.IOException e
+      {:success false :error (str "Failed to read file: " file_path " - " (.getMessage e))})))
 
 (def read-tool
   {:type "function"

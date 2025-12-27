@@ -82,10 +82,20 @@
           #_{:clj-kondo/ignore [:missing-protocol-method]}
           (reify FileSystem
             (read-file! [_ path]
-              (throw (java.io.FileNotFoundException. path))))
+              (throw (java.io.FileNotFoundException. (str "File not found: " path)))))
           result (tools/read-file {:file_path "missing.txt"} :fs failing-fs)]
       (is (false? (:success result)))
-      (is (= "File not found: missing.txt" (:error result))))))
+      (is (= "Failed to read file: missing.txt - File not found: missing.txt" (:error result)))))
+
+  (testing "read-file returns error on IO failure"
+    (let [failing-fs
+          #_{:clj-kondo/ignore [:missing-protocol-method]}
+          (reify FileSystem
+            (read-file! [_ path]
+              (throw (java.io.IOException. (str "Read error: " path)))))
+          result (tools/read-file {:file_path "error.txt"} :fs failing-fs)]
+      (is (false? (:success result)))
+      (is (re-find #"Failed to read file" (:error result))))))
 
 (deftest execute-tool-test
   (testing "execute-tool dispatches to correct tool."
