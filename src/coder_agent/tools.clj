@@ -17,7 +17,12 @@
 (defn write-file
   "Write content to the specified file path."
   [{:keys [file_path content]} & {:keys [fs] :or {fs default-fs}}]
-  (write-file! fs file_path content))
+  (try
+    (write-file! fs file_path content)
+    (catch java.security.AccessControlException e
+      {:success false :error (str "Failed to write file: " file_path " - " (.getMessage e))})
+    (catch java.io.IOException e
+      {:success false :error (str "Failed to write file: " file_path " - " (.getMessage e))})))
 
 (def write-tool
   {:type "function"
@@ -33,7 +38,10 @@
 (defn read-file
   "Read content from the specified file path."
   [{:keys [file_path]} & {:keys [fs] :or {fs default-fs}}]
-  (read-file! fs file_path))
+  (try
+    (read-file! fs file_path)
+    (catch java.io.FileNotFoundException _
+      {:success false :error (str "File not found: " file_path)})))
 
 (def read-tool
   {:type "function"

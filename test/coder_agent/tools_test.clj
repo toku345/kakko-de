@@ -33,7 +33,37 @@
     (let [fs (mock-fs)
           result (tools/write-file {:file_path "test.txt" :content "hello"} :fs fs)]
       (is (= {:success true :file_path "test.txt"} result))
-      (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
+      (is (= [{:path "test.txt" :content "hello"}] @(:calls fs)))))
+
+  (testing "write-file returns error when parent directory does not exist"
+    (let [failing-fs
+          #_{:clj-kondo/ignore [:missing-protocol-method]}
+          (reify FileSystem
+            (write-file! [_ path _content]
+              (throw (java.io.FileNotFoundException. (str "Parent directory does not exist: " path)))))
+          result (tools/write-file {:file_path "/nonexistent/test.txt" :content "data"} :fs failing-fs)]
+      (is (false? (:success result)))
+      (is (= "Failed to write file: /nonexistent/test.txt - Parent directory does not exist: /nonexistent/test.txt" (:error result)))))
+
+  (testing "write-file returns error on IO failure"
+    (let [failing-fs
+          #_{:clj-kondo/ignore [:missing-protocol-method]}
+          (reify FileSystem
+            (write-file! [_ path _content]
+              (throw (java.io.IOException. (str "Disk full: " path)))))
+          result (tools/write-file {:file_path "/some/path.txt" :content "data"} :fs failing-fs)]
+      (is (false? (:success result)))
+      (is (re-find #"Failed to write file" (:error result)))))
+
+  (testing "write-file returns error when permission denied"
+    (let [failing-fs
+          #_{:clj-kondo/ignore [:missing-protocol-method]}
+          (reify FileSystem
+            (write-file! [_ path _content]
+              (throw (java.security.AccessControlException. (str "Permission denied: " path)))))
+          result (tools/write-file {:file_path "/protected/test.txt" :content "data"} :fs failing-fs)]
+      (is (false? (:success result)))
+      (is (= "Failed to write file: /protected/test.txt - Permission denied: /protected/test.txt" (:error result))))))
 
 (deftest read-file!-test
   (testing "read-file! returns correct content."
@@ -45,7 +75,17 @@
   (testing "read-file reads content from specified file path."
     (let [fs (mock-fs)
           result (tools/read-file {:file_path "test.txt"} :fs fs)]
-      (is (= {:success true :content "Mock content of test.txt"} result)))))
+      (is (= {:success true :content "Mock content of test.txt"} result))))
+
+  (testing "read-file returns error for non-existent file"
+    (let [failing-fs
+          #_{:clj-kondo/ignore [:missing-protocol-method]}
+          (reify FileSystem
+            (read-file! [_ path]
+              (throw (java.io.FileNotFoundException. path))))
+          result (tools/read-file {:file_path "missing.txt"} :fs failing-fs)]
+      (is (false? (:success result)))
+      (is (= "File not found: missing.txt" (:error result))))))
 
 (deftest execute-tool-test
   (testing "execute-tool dispatches to correct tool."
