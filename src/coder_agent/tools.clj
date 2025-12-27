@@ -19,9 +19,7 @@
   [{:keys [file_path content]} & {:keys [fs] :or {fs default-fs}}]
   (try
     (write-file! fs file_path content)
-    (catch java.security.AccessControlException e
-      {:success false :error (str "Failed to write file: " file_path " - " (.getMessage e))})
-    (catch java.io.IOException e
+    (catch Exception e
       {:success false :error (str "Failed to write file: " file_path " - " (.getMessage e))})))
 
 (def write-tool
@@ -40,7 +38,7 @@
   [{:keys [file_path]} & {:keys [fs] :or {fs default-fs}}]
   (try
     (read-file! fs file_path)
-    (catch java.io.IOException e
+    (catch Exception e
       {:success false :error (str "Failed to read file: " file_path " - " (.getMessage e))})))
 
 (def read-tool

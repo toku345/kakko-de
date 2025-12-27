@@ -87,6 +87,16 @@
       (is (false? (:success result)))
       (is (= "Failed to read file: missing.txt - File not found: missing.txt" (:error result)))))
 
+  (testing "read-file returns error on permission denied"
+    (let [failing-fs
+          #_{:clj-kondo/ignore [:missing-protocol-method]}
+          (reify FileSystem
+            (read-file! [_ path]
+              (throw (java.security.AccessControlException. (str "Permission denied: " path)))))
+          result (tools/read-file {:file_path "/protected/secret.txt"} :fs failing-fs)]
+      (is (false? (:success result)))
+      (is (= "Failed to read file: /protected/secret.txt - Permission denied: /protected/secret.txt" (:error result)))))
+
   (testing "read-file returns error on IO failure"
     (let [failing-fs
           #_{:clj-kondo/ignore [:missing-protocol-method]}
