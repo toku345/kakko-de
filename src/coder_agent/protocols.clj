@@ -5,10 +5,12 @@
   "Protocol for file system operations."
   (write-file! [this path content]
     "Writes content to a file at the specified path.
-     Returns a ResultMap: {:success true :file_path path} or {:success false :error msg}")
+     Returns a ResultMap: {:success true :file_path path} on success.
+     May throw Exception on failure (e.g., IOException, SecurityException).")
   (read-file! [this path]
     "Reads content from a file at the specified path.
-     Returns a ResultMap: {:success true :content content} or {:success false :error msg}"))
+     Returns a ResultMap: {:success true :content content} on success.
+     May throw Exception on failure (e.g., IOException, SecurityException)."))
 
 (defprotocol LLMClient
   "Protocol for LLM API integrations."
