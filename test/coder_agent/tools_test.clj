@@ -22,6 +22,54 @@
 
 (use-fixtures :once helper/with-instrumentation)
 
+;; === RealFileSystem Tests ===
+
+(def test-file-path "test/test_integration_output.txt")
+(def test-read-file-path "test/fixtures/sample.txt")
+
+(defn cleanup-test-file [f]
+  (try
+    (f)
+    (finally
+      (io/delete-file test-file-path true))))
+
+(use-fixtures :each cleanup-test-file)
+
+(deftest write-file!-test
+  (testing "write-file! writes to actual file system"
+    (let [fs default-fs
+          file-path test-file-path
+          content "Test content."
+          result (write-file! fs file-path content)]
+      (is (= {:success true :file_path file-path} result))
+      (is (= content (slurp file-path)))))
+
+  (testing "write-file! returns error when parent directory does not exist"
+    (let [fs default-fs
+          file-path "/nonexistent/test.txt"
+          result (write-file! fs file-path "data")]
+      (is (false? (:success result)))
+      (is (re-find #"Failed to write file:" (:error result)))
+      (is (re-find #"No such file or directory" (:error result))))))
+
+(deftest read-file!-test
+  (testing "read-file! reads from actual file"
+    (let [fs default-fs
+          file-path test-read-file-path
+          content "# Sample.txt\n\nThis is a sample text file for testing purposes.\n"
+          result (read-file! fs file-path)]
+      (is (= {:success true :content content} result))))
+
+  (testing "read-file! returns error for non-existent file"
+    (let [fs default-fs
+          file-path "nonexistent_file.txt"
+          result (read-file! fs file-path)]
+      (is (false? (:success result)))
+      (is (re-find #"Failed to read file:" (:error result)))
+      (is (re-find #"No such file or directory" (:error result))))))
+
+;; === Wrapper Function Tests ===
+
 (deftest write-file-test
   (testing "write-file delegates to FileSystem protocol"
     (let [fs (mock-fs)
@@ -34,6 +82,8 @@
     (let [fs (mock-fs)
           result (tools/read-file {:file_path "test.txt"} :fs fs)]
       (is (= {:success true :content "Mock content of test.txt"} result)))))
+
+;; === Tool Dispatcher Tests ===
 
 (deftest execute-tool-test
   (testing "execute-tool dispatches to correct tool."
@@ -122,51 +172,3 @@
     (is (not (m/validate schema/ToolCall {})))
     (is (not (m/validate schema/ToolCall {:function {}})))
     (is (not (m/validate schema/ToolCall {:function {:name 123}})))))
-
-;; === Integration Tests ===
-
-(def test-file-path "test/test_integration_output.txt")
-(def test-read-file-path "test/fixtures/sample.txt")
-
-(defn cleanup-test-file [f]
-  (try
-    (f)
-    (finally
-      (io/delete-file test-file-path true) ; `true` to ignore if file does not exist
-      )))
-
-(use-fixtures :each cleanup-test-file)
-
-(deftest ^:integration write-file!-integration-test
-  (testing "write-file! writes to actual file system"
-    (let [fs default-fs
-          file-path test-file-path
-          content "Integration test content."
-          result (write-file! fs file-path content)]
-      (is (= {:success true :file_path file-path} result))
-      (is (= content (slurp file-path)))))
-
-  (testing "write-file! returns error when parent directory does not exist"
-    (let [fs default-fs
-          file-path "/nonexistent/test.txt"
-          result (write-file! fs file-path "data")]
-      (is (false? (:success result)))
-      (is (re-find #"Failed to write file:" (:error result)))
-      (is (re-find #"No such file or directory" (:error result))))))
-
-(deftest ^:integration read-file!-integration-test
-  (testing "read-file reads from actual file"
-    (let [fs default-fs
-          file-path test-read-file-path
-
-          content "# Sample.txt\n\nThis is a sample text file for testing purposes.\n"
-          result (read-file! fs file-path)]
-      (is (= {:success true :content content} result))))
-
-  (testing "read-file returns error for non-existent file"
-    (let [fs default-fs
-          file-path "nonexistent_file.txt"
-          result (read-file! fs file-path)]
-      (is (false? (:success result)))
-      (is (re-find #"Failed to read file:" (:error result)))
-      (is (re-find #"No such file or directory" (:error result))))))
