@@ -128,7 +128,6 @@
 (def test-file-path "test/test_integration_output.txt")
 (def test-read-file-path "test/fixtures/sample.txt")
 
-
 (defn cleanup-test-file [f]
   (try
     (f)
