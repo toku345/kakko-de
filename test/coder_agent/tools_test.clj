@@ -2,7 +2,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.test :refer [deftest is testing use-fixtures]]
-   [coder-agent.protocols :refer [FileSystem read-file! write-file!]]
+   [coder-agent.protocols :refer [FileSystem list-dir! read-file! write-file! list-dir!]]
    [coder-agent.schema :as schema]
    [coder-agent.test-helper :as helper]
    [coder-agent.tools :as tools :refer [default-fs]]
@@ -15,7 +15,9 @@
     {:success true :file_path path})
   (read-file! [_ path]
     (let [content (str "Mock content of " path)]
-      {:success true :content content})))
+      {:success true :content content}))
+  (list-dir! [_ _path]
+    {:success true :output "Mocked directory listing"}))
 
 (defn mock-fs []
   (->MockFileSystem (atom [])))
@@ -68,6 +70,22 @@
       (is (re-find #"Failed to read file:" (:error result)))
       (is (re-find #"No such file or directory" (:error result))))))
 
+(deftest list-dir!-test
+  (testing "list-dir! lists files in specified directory"
+    (let [fs default-fs
+          dir-path "test/fixtures"
+          result (list-dir! fs dir-path)]
+      (is (= true (:success result)))
+      (is (re-find #"sample.txt" (:output result)))
+      (is (re-find #"another_sample.txt" (:output result)))))
+
+  (testing "list-dir! returns error for non-existent directory"
+    (let [fs default-fs
+          dir-path "nonexistent_dir/"
+          result (list-dir! fs dir-path)]
+      (is (= false (:success result)))
+      (is (re-find #"No such file or directory" (:error result))))))
+
 ;; === Wrapper Function Tests ===
 
 (deftest write-file-test
@@ -82,6 +100,12 @@
     (let [fs (mock-fs)
           result (tools/read-file {:file_path "test.txt"} :fs fs)]
       (is (= {:success true :content "Mock content of test.txt"} result)))))
+
+(deftest list-dir-test
+  (testing "list-dir delegates to FileSystem protocol"
+    (let [fs (mock-fs)
+          result (tools/list-dir {:dir_path "some/dir"} :fs fs)]
+      (is (= {:success true :output "Mocked directory listing"} result)))))
 
 ;; === Tool Dispatcher Tests ===
 

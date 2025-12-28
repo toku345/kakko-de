@@ -1,7 +1,9 @@
 (ns coder-agent.tools
-  (:require [cheshire.core :as json]
-            [coder-agent.protocols :refer [FileSystem write-file! read-file!]]
-            [coder-agent.schema :as schema]))
+  (:require
+   [cheshire.core :as json]
+   [clojure.java.shell :as sh]
+   [coder-agent.protocols :refer [FileSystem read-file! write-file! list-dir!]]
+   [coder-agent.schema :as schema]))
 
 (defrecord RealFileSystem []
   FileSystem
@@ -20,7 +22,13 @@
         {:success true :content content})
       (catch Exception e
         {:success false
-         :error (str "Failed to read file: " path " - " (.getMessage e))}))))
+         :error (str "Failed to read file: " path " - " (.getMessage e))})))
+
+  (list-dir! [_ path]
+    (let [result (sh/sh "ls" "-la" path)]
+      (if (= 0 (:exit result))
+        {:success true :output (:out result)}
+        {:success false :error (:err result)}))))
 
 (def default-fs (->RealFileSystem))
 
@@ -54,10 +62,25 @@
                                                     :description "Absolute path to the file."}}
                            :required ["file_path"]}}})
 
+(defn list-dir
+  "List files in the specified directory path."
+  [{:keys [dir_path]} & {:keys [fs] :or {fs default-fs}}]
+  (list-dir! fs dir_path))
+
+(def ls-tool
+  {:type "function"
+   :function {:name "list_dir"
+              :description "List files in a directory."
+              :parameters {:type "object"
+                           :properties {:dir_path {:type "string"
+                                                   :description "Absolute path to the directory."}}
+                           :required ["dir_path"]}}})
+
 ;; Tool registry & dispatcher
 (def tool-registry
   {"write_file" write-file
-   "read_file" read-file})
+   "read_file" read-file
+   "list_dir" list-dir})
 
 (defn execute-tool
   "Execute a tool call from LLM response."
@@ -82,6 +105,10 @@
   (write-file! default-fs "test_output_2" "Test content made via protocol!")
 
   (read-file! default-fs "test/fixtures/sample.txt")
+
+  ;; (sh/sh "ls" "-la" "src/")
+  ;; (sh/sh "ls" "-la" "nonexistent_dir/")
+  (list-dir! default-fs "test/fixtures")
 
   (execute-tool
    {:function
