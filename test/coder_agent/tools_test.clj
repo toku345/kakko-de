@@ -138,7 +138,7 @@
 (use-fixtures :each cleanup-test-file)
 
 (deftest ^:integration write-file!-integration-test
-  (testing "write-file! write to actual file system"
+  (testing "write-file! writes to actual file system"
     (let [fs default-fs
           file-path test-file-path
           content "Integration test content."
@@ -163,7 +163,7 @@
           result (read-file! fs file-path)]
       (is (= {:success true :content content} result))))
 
-  (testing " read-file returns error for non-existent file"
+  (testing "read-file returns error for non-existent file"
     (let [fs default-fs
           file-path "nonexistent_file.txt"
           result (read-file! fs file-path)]
