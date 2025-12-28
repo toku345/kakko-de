@@ -1,10 +1,11 @@
 (ns coder-agent.tools-test
   (:require
+   [clojure.java.io :as io]
    [clojure.test :refer [deftest is testing use-fixtures]]
    [coder-agent.protocols :refer [FileSystem read-file! write-file!]]
    [coder-agent.schema :as schema]
    [coder-agent.test-helper :as helper]
-   [coder-agent.tools :as tools]
+   [coder-agent.tools :as tools :refer [default-fs]]
    [malli.core :as m]))
 
 (defrecord MockFileSystem [calls]
@@ -21,91 +22,18 @@
 
 (use-fixtures :once helper/with-instrumentation)
 
-(deftest write-file!-test
-  (testing "write-file! records calls with correct arguments."
-    (let [fs (mock-fs)
-          result (write-file! fs "test.txt" "hello")]
-      (is (= {:success true :file_path "test.txt"} result))
-      (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
-
 (deftest write-file-test
   (testing "write-file delegates to FileSystem protocol"
     (let [fs (mock-fs)
           result (tools/write-file {:file_path "test.txt" :content "hello"} :fs fs)]
       (is (= {:success true :file_path "test.txt"} result))
-      (is (= [{:path "test.txt" :content "hello"}] @(:calls fs)))))
-
-  (testing "write-file returns error when parent directory does not exist"
-    (let [failing-fs
-          #_{:clj-kondo/ignore [:missing-protocol-method]}
-          (reify FileSystem
-            (write-file! [_ path _content]
-              (throw (java.io.FileNotFoundException. (str "Parent directory does not exist: " path)))))
-          result (tools/write-file {:file_path "/nonexistent/test.txt" :content "data"} :fs failing-fs)]
-      (is (false? (:success result)))
-      (is (= "Failed to write file: /nonexistent/test.txt - Parent directory does not exist: /nonexistent/test.txt" (:error result)))))
-
-  (testing "write-file returns error on IO failure"
-    (let [failing-fs
-          #_{:clj-kondo/ignore [:missing-protocol-method]}
-          (reify FileSystem
-            (write-file! [_ path _content]
-              (throw (java.io.IOException. (str "Disk full: " path)))))
-          result (tools/write-file {:file_path "/some/path.txt" :content "data"} :fs failing-fs)]
-      (is (false? (:success result)))
-      (is (re-find #"Failed to write file" (:error result)))))
-
-  (testing "write-file returns error when permission denied"
-    (let [failing-fs
-          #_{:clj-kondo/ignore [:missing-protocol-method]}
-          (reify FileSystem
-            (write-file! [_ path _content]
-              (throw (java.security.AccessControlException. (str "Permission denied: " path)))))
-          result (tools/write-file {:file_path "/protected/test.txt" :content "data"} :fs failing-fs)]
-      (is (false? (:success result)))
-      (is (= "Failed to write file: /protected/test.txt - Permission denied: /protected/test.txt" (:error result))))))
-
-(deftest read-file!-test
-  (testing "read-file! returns correct content."
-    (let [fs (mock-fs)
-          result (read-file! fs "test.txt")]
-      (is (= {:success true :content "Mock content of test.txt"} result)))))
+      (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
 
 (deftest read-file-test
-  (testing "read-file reads content from specified file path."
+  (testing "read-file delegates to FileSystem protocol"
     (let [fs (mock-fs)
           result (tools/read-file {:file_path "test.txt"} :fs fs)]
-      (is (= {:success true :content "Mock content of test.txt"} result))))
-
-  (testing "read-file returns error for non-existent file"
-    (let [failing-fs
-          #_{:clj-kondo/ignore [:missing-protocol-method]}
-          (reify FileSystem
-            (read-file! [_ path]
-              (throw (java.io.FileNotFoundException. (str "File not found: " path)))))
-          result (tools/read-file {:file_path "missing.txt"} :fs failing-fs)]
-      (is (false? (:success result)))
-      (is (= "Failed to read file: missing.txt - File not found: missing.txt" (:error result)))))
-
-  (testing "read-file returns error on permission denied"
-    (let [failing-fs
-          #_{:clj-kondo/ignore [:missing-protocol-method]}
-          (reify FileSystem
-            (read-file! [_ path]
-              (throw (java.security.AccessControlException. (str "Permission denied: " path)))))
-          result (tools/read-file {:file_path "/protected/secret.txt"} :fs failing-fs)]
-      (is (false? (:success result)))
-      (is (= "Failed to read file: /protected/secret.txt - Permission denied: /protected/secret.txt" (:error result)))))
-
-  (testing "read-file returns error on IO failure"
-    (let [failing-fs
-          #_{:clj-kondo/ignore [:missing-protocol-method]}
-          (reify FileSystem
-            (read-file! [_ path]
-              (throw (java.io.IOException. (str "Read error: " path)))))
-          result (tools/read-file {:file_path "error.txt"} :fs failing-fs)]
-      (is (false? (:success result)))
-      (is (re-find #"Failed to read file" (:error result))))))
+      (is (= {:success true :content "Mock content of test.txt"} result)))))
 
 (deftest execute-tool-test
   (testing "execute-tool dispatches to correct tool."
@@ -194,3 +122,52 @@
     (is (not (m/validate schema/ToolCall {})))
     (is (not (m/validate schema/ToolCall {:function {}})))
     (is (not (m/validate schema/ToolCall {:function {:name 123}})))))
+
+;; === Integration Tests ===
+
+(def test-file-path "test/test_integration_output.txt")
+(def test-read-file-path "test/fixtures/sample.txt")
+
+
+(defn cleanup-test-file [f]
+  (try
+    (f)
+    (finally
+      (io/delete-file test-file-path true) ; `true` to ignore if file does not exist
+      )))
+
+(use-fixtures :each cleanup-test-file)
+
+(deftest ^:integration write-file!-integration-test
+  (testing "write-file! write to actual file system"
+    (let [fs default-fs
+          file-path test-file-path
+          content "Integration test content."
+          result (write-file! fs file-path content)]
+      (is (= {:success true :file_path file-path} result))
+      (is (= content (slurp file-path)))))
+
+  (testing "write-file! returns error when parent directory does not exist"
+    (let [fs default-fs
+          file-path "/nonexistent/test.txt"
+          result (write-file! fs file-path "data")]
+      (is (false? (:success result)))
+      (is (re-find #"Failed to write file:" (:error result)))
+      (is (re-find #"No such file or directory" (:error result))))))
+
+(deftest ^:integration read-file!-integration-test
+  (testing "read-file reads from actual file"
+    (let [fs default-fs
+          file-path test-read-file-path
+
+          content "# Sample.txt\n\nThis is a sample text file for testing purposes.\n"
+          result (read-file! fs file-path)]
+      (is (= {:success true :content content} result))))
+
+  (testing " read-file returns error for non-existent file"
+    (let [fs default-fs
+          file-path "nonexistent_file.txt"
+          result (read-file! fs file-path)]
+      (is (false? (:success result)))
+      (is (re-find #"Failed to read file:" (:error result)))
+      (is (re-find #"No such file or directory" (:error result))))))

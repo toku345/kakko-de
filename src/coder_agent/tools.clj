@@ -5,22 +5,29 @@
 
 (defrecord RealFileSystem []
   FileSystem
+
   (write-file! [_ path content]
-    (spit path content)
-    {:success true :file_path path})
+    (try
+      (spit path content)
+      {:success true :file_path path}
+      (catch Exception e
+        {:success false
+         :error (str "Failed to write file: " path " - " (.getMessage e))})))
+
   (read-file! [_ path]
-    (let [content (slurp path)]
-      {:success true :content content})))
+    (try
+      (let [content (slurp path)]
+        {:success true :content content})
+      (catch Exception e
+        {:success false
+         :error (str "Failed to read file: " path " - " (.getMessage e))}))))
 
 (def default-fs (->RealFileSystem))
 
 (defn write-file
   "Write content to the specified file path."
   [{:keys [file_path content]} & {:keys [fs] :or {fs default-fs}}]
-  (try
-    (write-file! fs file_path content)
-    (catch Exception e
-      {:success false :error (str "Failed to write file: " file_path " - " (.getMessage e))})))
+  (write-file! fs file_path content))
 
 (def write-tool
   {:type "function"
@@ -36,10 +43,7 @@
 (defn read-file
   "Read content from the specified file path."
   [{:keys [file_path]} & {:keys [fs] :or {fs default-fs}}]
-  (try
-    (read-file! fs file_path)
-    (catch Exception e
-      {:success false :error (str "Failed to read file: " file_path " - " (.getMessage e))})))
+  (read-file! fs file_path))
 
 (def read-tool
   {:type "function"

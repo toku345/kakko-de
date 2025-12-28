@@ -27,14 +27,6 @@
       (is (string? response))
       (is (pos? (count response))))))
 
-(deftest ^:integration write-file-integration-test
-  (testing "write-file writes to actual file"
-    (let [file-path test-file-path
-          content "Integration test content."
-          result (tools/write-file {:file_path file-path :content content})]
-      (is (= {:success true :file_path file-path} result))
-      (is (= content (slurp file-path))))))
-
 (deftest ^:integration read-file-integration-test
   (testing "read-file reads from actual file"
     (let [file-path test-read-file-path
