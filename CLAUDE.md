@@ -83,7 +83,7 @@ Evaluate the `def` forms to override settings at runtime.
 
 ## Error Handling
 
-- **Tool-level error handling:** Each tool wrapper function (e.g., `read-file`, `write-file`) handles its own domain-specific errors
+- **Protocol-level error handling:** Each `FileSystem` protocol implementation (e.g., `RealFileSystem`) handles domain-specific errors and returns ResultMaps. Wrapper functions (`read-file`, `write-file`) are thin delegates.
 - **Result map pattern:** `{:success true/false ...}` instead of throwing
 - **Descriptive errors for LLM:** Error messages should help LLM agents decide next actions (e.g., "Failed to read file: /path - No such file or directory" vs generic "Tool execution failed")
 - **Fallback boundary:** `execute-tool` catches unexpected exceptions as a safety net
