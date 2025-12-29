@@ -28,7 +28,7 @@
     (let [result (sh/sh "ls" "-la" path)]
       (if (= 0 (:exit result))
         {:success true :output (:out result)}
-        {:success false :error (:err result)}))))
+        {:success false :error (str "Failed to list directory: " path " - " (:err result))}))))
 
 (def default-fs (->RealFileSystem))
 
