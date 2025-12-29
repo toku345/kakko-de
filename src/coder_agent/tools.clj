@@ -71,7 +71,7 @@
   [{:keys [dir_path]} & {:keys [fs] :or {fs default-fs}}]
   (list-dir! fs dir_path))
 
-(def ls-tool
+(def list-dir-tool
   {:type "function"
    :function {:name "list_dir"
               :description "List files in a directory."
