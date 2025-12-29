@@ -114,9 +114,6 @@
 
   (read-file! default-fs "test/fixtures/sample.txt")
 
-  ;; (sh/sh "ls" "-la" "src/")
-  ;; (sh/sh "ls" "-la" "nonexistent_dir/")
-  (sh/sh "ls" "-la" nil)
   (list-dir! default-fs "test/fixtures")
 
   (execute-tool

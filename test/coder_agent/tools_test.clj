@@ -17,8 +17,9 @@
   (read-file! [_ path]
     (let [content (str "Mock content of " path)]
       {:success true :content content}))
-  (list-dir! [_ _path]
-    {:success true :listing "Mocked directory listing"}))
+  (list-dir! [_ path]
+    (swap! calls conj {:op :list-dir :path path})
+    {:success true :listing (str "Mocked listing of " path)}))
 
 (defn mock-fs []
   (->MockFileSystem (atom [])))
@@ -92,7 +93,17 @@
     (let [fs default-fs
           result (list-dir! fs nil)]
       (is (= false (:success result)))
-      (is (re-find #"Failed to list directory:" (:error result))))))
+      (is (re-find #"Failed to list directory:" (:error result)))))
+
+  (testing "list-dir! handle empty directory"
+    (let [empty-dir (io/file "test/fixtures/empty_dir")]
+      (.mkdir empty-dir)
+      (try
+        (let [result (list-dir! default-fs (.getPath empty-dir))]
+          (is (= true (:success result)))
+          (is (= "" (:listing result))))
+        (finally
+          (.delete empty-dir))))))
 
 ;; === Wrapper Function Tests ===
 
@@ -110,10 +121,11 @@
       (is (= {:success true :content "Mock content of test.txt"} result)))))
 
 (deftest list-dir-test
-  (testing "list-dir delegates to FileSystem protocol"
+  (testing "list-dir delegates to FileSystem protocol with correct path"
     (let [fs (mock-fs)
-          result (tools/list-dir {:dir_path "some/dir"} :fs fs)]
-      (is (= {:success true :listing "Mocked directory listing"} result)))))
+          result (tools/list-dir {:dir_path "/some/dir"} :fs fs)]
+      (is (= {:success true :listing "Mocked listing of /some/dir"} result))
+      (is (= [{:op :list-dir :path "/some/dir"}] @(:calls fs))))))
 
 ;; === Tool Dispatcher Tests ===
 
@@ -169,7 +181,8 @@
           tool-call {:function {:name "list_dir"
                                 :arguments (json/generate-string {:dir_path dir-path})}}
           result (tools/execute-tool tool-call)]
-      (is (:success result)))))
+      (is (:success result))
+      (is (re-find #"sample.txt" (:listing result))))))
 
 ;; === Schema Contract Tests ===
 
