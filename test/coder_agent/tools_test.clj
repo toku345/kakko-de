@@ -2,11 +2,12 @@
   (:require
    [clojure.java.io :as io]
    [clojure.test :refer [deftest is testing use-fixtures]]
-   [coder-agent.protocols :refer [FileSystem list-dir! read-file! write-file! list-dir!]]
+   [coder-agent.protocols :refer [FileSystem list-dir! read-file! write-file!]]
    [coder-agent.schema :as schema]
    [coder-agent.test-helper :as helper]
    [coder-agent.tools :as tools :refer [default-fs]]
-   [malli.core :as m]))
+   [malli.core :as m]
+   [cheshire.core :as json]))
 
 (defrecord MockFileSystem [calls]
   FileSystem
@@ -26,21 +27,21 @@
 
 ;; === RealFileSystem Tests ===
 
-(def test-file-path "test/test_integration_output.txt")
+(def test-write-file-path "test/test_integration_output.txt")
 (def test-read-file-path "test/fixtures/sample.txt")
 
 (defn cleanup-test-file [f]
   (try
     (f)
     (finally
-      (io/delete-file test-file-path true))))
+      (io/delete-file test-write-file-path true))))
 
 (use-fixtures :each cleanup-test-file)
 
 (deftest write-file!-test
   (testing "write-file! writes to actual file system"
     (let [fs default-fs
-          file-path test-file-path
+          file-path test-write-file-path
           content "Test content."
           result (write-file! fs file-path content)]
       (is (= {:success true :file_path file-path} result))
@@ -84,6 +85,7 @@
           dir-path "nonexistent_dir/"
           result (list-dir! fs dir-path)]
       (is (= false (:success result)))
+      (is (re-find #"Failed to list directory:" (:error result)))
       (is (re-find #"No such file or directory" (:error result))))))
 
 ;; === Wrapper Function Tests ===
@@ -109,6 +111,12 @@
 
 ;; === Tool Dispatcher Tests ===
 
+(deftest tool-registry-test
+  (testing "tool-registry contains correct tool functions"
+    (is (= tools/write-file (get tools/tool-registry "write_file")))
+    (is (= tools/read-file (get tools/tool-registry "read_file")))
+    (is (= tools/list-dir (get tools/tool-registry "list_dir")))))
+
 (deftest execute-tool-test
   (testing "execute-tool dispatches to correct tool."
     (let [mock-write (fn [args] {:success true :called-with args})
@@ -130,6 +138,33 @@
           result (tools/execute-tool tool-call)]
       (is (= false (:success result)))
       (is (re-find #"Tool execution failed" (:error result))))))
+
+(deftest execute-tool-dispatch-test
+  (testing "dispatches write_file with correct arguments"
+    (let [file-path test-write-file-path
+          content "hello"
+          tool-call {:function {:name "write_file"
+                                :arguments (json/generate-string {:file_path file-path
+                                                                  :content content})}}
+          result (tools/execute-tool tool-call)]
+      (is (:success result))
+      (is (= content (slurp file-path)))))
+
+  (testing "dispatches read_file with correct arguments"
+    (let [file-path test-read-file-path
+          tool-call {:function {:name "read_file"
+                                :arguments (json/generate-string {:file_path file-path})}}
+          result (tools/execute-tool tool-call)]
+      (is (:success result))
+      (is (re-find #"Sample.txt" (:content result)))))
+
+  (testing "dispatches list_dir with correct arguments"
+    (let [dir-path "test/fixtures"
+          tool-call {:function {:name "list_dir"
+                                :arguments (json/generate-string {:dir_path dir-path})}}
+          result (tools/execute-tool tool-call)]
+      (is (:success result))
+      (is (string? (:output result))))))
 
 ;; === Schema Contract Tests ===
 
