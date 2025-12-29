@@ -13,7 +13,7 @@
      or {:success false :error msg} on failure.")
   (list-dir! [this path]
     "Lists files in the directory at the specified path.
-     Returns a ResultMap: {:success true :output listing} on success,
+     Returns a ResultMap: {:success true :listing listing} on success,
      or {:success false :error msg} on failure."))
 
 (defprotocol LLMClient

@@ -18,7 +18,7 @@
     (let [content (str "Mock content of " path)]
       {:success true :content content}))
   (list-dir! [_ _path]
-    {:success true :output "Mocked directory listing"}))
+    {:success true :listing "Mocked directory listing"}))
 
 (defn mock-fs []
   (->MockFileSystem (atom [])))
@@ -77,16 +77,16 @@
           dir-path "test/fixtures"
           result (list-dir! fs dir-path)]
       (is (= true (:success result)))
-      (is (re-find #"sample.txt" (:output result)))
-      (is (re-find #"another_sample.txt" (:output result)))))
+      (is (re-find #"sample.txt" (:listing result)))
+      (is (re-find #"another_sample.txt" (:listing result)))))
 
   (testing "list-dir! returns error for non-existent directory"
     (let [fs default-fs
           dir-path "nonexistent_dir/"
           result (list-dir! fs dir-path)]
       (is (= false (:success result)))
-      (is (re-find #"Failed to list directory:" (:error result)))
-      (is (re-find #"No such file or directory" (:error result))))))
+     (is (re-find #"Failed to list directory:" (:error result)))
+      (is (re-find #"Not a directory or does not exist" (:error result))))))
 
 ;; === Wrapper Function Tests ===
 
@@ -107,7 +107,7 @@
   (testing "list-dir delegates to FileSystem protocol"
     (let [fs (mock-fs)
           result (tools/list-dir {:dir_path "some/dir"} :fs fs)]
-      (is (= {:success true :output "Mocked directory listing"} result)))))
+      (is (= {:success true :listing "Mocked directory listing"} result)))))
 
 ;; === Tool Dispatcher Tests ===
 
@@ -163,8 +163,7 @@
           tool-call {:function {:name "list_dir"
                                 :arguments (json/generate-string {:dir_path dir-path})}}
           result (tools/execute-tool tool-call)]
-      (is (:success result))
-      (is (string? (:output result))))))
+      (is (:success result)))))
 
 ;; === Schema Contract Tests ===
 

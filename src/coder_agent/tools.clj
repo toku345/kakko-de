@@ -1,8 +1,9 @@
 (ns coder-agent.tools
   (:require
    [cheshire.core :as json]
-   [clojure.java.shell :as sh]
-   [coder-agent.protocols :refer [FileSystem read-file! write-file! list-dir!]]
+   [clojure.java.io :as io]
+   [clojure.string :as str]
+   [coder-agent.protocols :refer [FileSystem list-dir! read-file! write-file!]]
    [coder-agent.schema :as schema]))
 
 (defrecord RealFileSystem []
@@ -25,10 +26,13 @@
          :error (str "Failed to read file: " path " - " (.getMessage e))})))
 
   (list-dir! [_ path]
-    (let [result (sh/sh "ls" "-la" path)]
-      (if (= 0 (:exit result))
-        {:success true :output (:out result)}
-        {:success false :error (str "Failed to list directory: " path " - " (:err result))}))))
+    (let [dir (io/file path)
+          files (.listFiles dir)]
+      (if files
+        {:success true
+         :listing (str/join "\n" (map #(.getName %) files))}
+        {:success false
+         :error (str "Failed to list directory: " path " - Not a directory or does not exist.")}))))
 
 (def default-fs (->RealFileSystem))
 
@@ -108,6 +112,7 @@
 
   ;; (sh/sh "ls" "-la" "src/")
   ;; (sh/sh "ls" "-la" "nonexistent_dir/")
+  (sh/sh "ls" "-la" nil)
   (list-dir! default-fs "test/fixtures")
 
   (execute-tool
