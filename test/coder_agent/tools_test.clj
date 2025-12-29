@@ -85,8 +85,14 @@
           dir-path "nonexistent_dir/"
           result (list-dir! fs dir-path)]
       (is (= false (:success result)))
-     (is (re-find #"Failed to list directory:" (:error result)))
-      (is (re-find #"Not a directory or does not exist" (:error result))))))
+      (is (re-find #"Failed to list directory:" (:error result)))
+      (is (re-find #"Not a directory or does not exist" (:error result)))))
+
+  (testing "list-dir! returns error for nil path"
+    (let [fs default-fs
+          result (list-dir! fs nil)]
+      (is (= false (:success result)))
+      (is (re-find #"Failed to list directory:" (:error result))))))
 
 ;; === Wrapper Function Tests ===
 

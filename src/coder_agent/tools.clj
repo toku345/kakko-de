@@ -26,13 +26,17 @@
          :error (str "Failed to read file: " path " - " (.getMessage e))})))
 
   (list-dir! [_ path]
-    (let [dir (io/file path)
-          files (.listFiles dir)]
-      (if files
-        {:success true
-         :listing (str/join "\n" (map #(.getName %) files))}
+    (try
+      (let [dir (io/file path)
+            files (.listFiles dir)]
+        (if files
+          {:success true
+           :listing (str/join "\n" (map #(.getName %) files))}
+          {:success false
+           :error (str "Failed to list directory: " path " - Not a directory or does not exist.")}))
+      (catch Exception e
         {:success false
-         :error (str "Failed to list directory: " path " - Not a directory or does not exist.")}))))
+         :error (str "Failed to list directory: " path " - " (.getMessage e))}))))
 
 (def default-fs (->RealFileSystem))
 
