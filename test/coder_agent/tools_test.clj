@@ -150,6 +150,12 @@
       (is (= {:success true :listing "Mocked listing of /some/dir"} result))
       (is (= [{:op :list-dir :path "/some/dir"}] @(:calls fs))))))
 
+(deftest list-dir-error-simulation-test
+  (testing "list-dir returns error when MockFileSystem is configured with error"
+    (let [fs (mock-fs {:list-dir-error "Simulated I/O error"})
+          result (tools/list-dir {:dir_path "/some/dir"} :fs fs)]
+      (is (= {:success false :error "Simulated I/O error"} result)))))
+
 ;; === Tool Dispatcher Tests ===
 
 (deftest tool-registry-test
