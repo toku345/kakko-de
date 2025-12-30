@@ -97,7 +97,7 @@
           result (list-dir! fs dir-path)]
       (is (= false (:success result)))
       (is (re-find #"Failed to list directory:" (:error result)))
-      (is (re-find #"Not a directory or does not exist" (:error result)))))
+      (is (re-find #"Directory does not exist" (:error result)))))
 
   (testing "list-dir! returns error for nil path"
     (let [fs default-fs
@@ -113,7 +113,14 @@
           (is (= true (:success result)))
           (is (= "" (:listing result))))
         (finally
-          (.delete empty-dir))))))
+          (.delete empty-dir)))))
+
+  (testing "list-dir! returns error when path points to a file"
+    (let [fs default-fs
+          file-path test-read-file-path
+          result (list-dir! fs file-path)]
+      (is (= false (:success result)))
+      (is (re-find #"is a file, not a directory" (:error result))))))
 
 ;; === Wrapper Function Tests ===
 

@@ -27,13 +27,25 @@
 
   (list-dir! [_ path]
     (try
-      (let [dir (io/file path)
-            files (.listFiles dir)]
-        (if files
-          {:success true
-           :listing (str/join "\n" (map #(.getName %) files))}
+      (let [dir (io/file path)]
+        (cond
+          (not (.exists dir))
           {:success false
-           :error (str "Failed to list directory: " path " - Not a directory or does not exist.")}))
+           :error (str "Failed to list directory: " path " - Directory does not exist.")}
+
+          (not (.isDirectory dir))
+          {:success false
+           :error (str "Failed to list directory: " path
+                       " - Path exists but is a file, not a directory. Use read_file tool instead.")}
+
+          :else
+          (let [files (.listFiles dir)]
+            (if files
+              {:success true
+               :listing (str/join "\n" (map #(.getName %) files))}
+              {:success false
+               :error (str "Failed to list directory: " path " - Permission denied or I/O error.")}))))
+
       (catch Exception e
         {:success false
          :error (str "Failed to list directory: " path " - " (.getMessage e))}))))
