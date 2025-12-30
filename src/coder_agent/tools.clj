@@ -112,7 +112,7 @@
   (write-file {:file_path "test_output.txt"
                :content   "This is a test content!?"})
 
-  (write-file! default-fs "test_output_2" "eT[]st content made via protocol!")
+  (write-file! default-fs "test_output_2" "Test content made via protocol!")
 
   (read-file! default-fs "test/fixtures/sample.txt")
 
