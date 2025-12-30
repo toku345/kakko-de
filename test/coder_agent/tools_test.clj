@@ -9,20 +9,30 @@
    [malli.core :as m]
    [cheshire.core :as json]))
 
-(defrecord MockFileSystem [calls]
+(defrecord MockFileSystem [calls config]
   FileSystem
   (write-file! [_ path content]
-    (swap! calls conj {:path path :content content})
-    {:success true :file_path path})
+    (swap! calls conj {:op :write-file :path path :content content})
+    (if-let [error (:write-file-error @config)]
+      {:success false :error error}
+      {:success true :file_path path}))
+
   (read-file! [_ path]
-    (let [content (str "Mock content of " path)]
-      {:success true :content content}))
+    (swap! calls conj {:op :read-file :path path})
+    (if-let [error (:read-file-error @config)]
+      {:success false :error error}
+      {:success true :content (str "Mock content of " path)}))
+
   (list-dir! [_ path]
     (swap! calls conj {:op :list-dir :path path})
-    {:success true :listing (str "Mocked listing of " path)}))
+    (if-let [error (:list-dir-error @config)]
+      {:success false :error error}
+      {:success true :listing (str "Mocked listing of " path)})))
 
-(defn mock-fs []
-  (->MockFileSystem (atom [])))
+(defn mock-fs
+  ([] (mock-fs {}))
+  ([opts]
+   (->MockFileSystem (atom []) (atom opts))))
 
 (use-fixtures :once helper/with-instrumentation)
 
@@ -112,7 +122,7 @@
     (let [fs (mock-fs)
           result (tools/write-file {:file_path "test.txt" :content "hello"} :fs fs)]
       (is (= {:success true :file_path "test.txt"} result))
-      (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
+      (is (= [{:op :write-file :path "test.txt" :content "hello"}] @(:calls fs))))))
 
 (deftest read-file-test
   (testing "read-file delegates to FileSystem protocol"
