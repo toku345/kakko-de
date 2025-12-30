@@ -71,14 +71,16 @@
                            :required ["file_path"]}}})
 
 (defn list-dir
-  "List files in the specified directory path."
+  "List files in the specified directory path.
+   Returns {:success true :listing \"file1\\nfile2\\n...\"} with newline-separated names,
+   or {:success false :error msg} on failure."
   [{:keys [dir_path]} & {:keys [fs] :or {fs default-fs}}]
   (list-dir! fs dir_path))
 
 (def list-dir-tool
   {:type "function"
    :function {:name "list_dir"
-              :description "List files in a directory."
+              :description "List files in a directory. Returns newline-separated filenames."
               :parameters {:type "object"
                            :properties {:dir_path {:type "string"
                                                    :description "Absolute path to the directory."}}
@@ -110,7 +112,7 @@
   (write-file {:file_path "test_output.txt"
                :content   "This is a test content!?"})
 
-  (write-file! default-fs "test_output_2" "Test content made via protocol!")
+  (write-file! default-fs "test_output_2" "eT[]st content made via protocol!")
 
   (read-file! default-fs "test/fixtures/sample.txt")
 
