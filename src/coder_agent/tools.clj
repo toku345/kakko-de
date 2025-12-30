@@ -6,6 +6,33 @@
    [coder-agent.protocols :refer [FileSystem list-dir! read-file! write-file!]]
    [coder-agent.schema :as schema]))
 
+;; === Private helper functions ===
+
+(defn- validate-dir-path [dir_path]
+  (when (nil? dir_path)
+    {:success false
+     :error "Failed to list directory: dir_path parameter is required."}))
+
+(defn- validate-dir-exists [dir path]
+  (when-not (.exists dir)
+    {:success false
+     :error (str "Failed to list directory: " path " - Directory does not exist.")}))
+
+(defn- validate-is-directory [dir path]
+  (when-not (.isDirectory dir)
+    {:success false
+     :error (str "Failed to list directory: " path
+                 " - Path exists but is a file, not a directory. Use read_file tool instead.")}))
+
+(defn do-list-dir [dir path]
+  (if-let [files (.listFiles dir)]
+    {:success true
+     :listing (str/join "\n" (map #(.getName %) files))}
+    {:success false
+     :error (str "Failed to list directory: " path " - Permission denied or I/O error.")}))
+
+;; === RealFileSystem ===
+
 (defrecord RealFileSystem []
   FileSystem
 
@@ -27,31 +54,11 @@
 
   (list-dir! [_ path]
     (try
-      (let [dir (io/file path)]
-        (cond
-          (nil? path)
-          {:success false
-           :error "Failed to list directory: dir_path parameter is required."}
-
-          :else
-          (cond
-            (not (.exists dir))
-            {:success false
-             :error (str "Failed to list directory: " path " - Directory does not exist.")}
-
-            (not (.isDirectory dir))
-            {:success false
-             :error (str "Failed to list directory: " path
-                         " - Path exists but is a file, not a directory. Use read_file tool instead.")}
-
-            :else
-            (let [files (.listFiles dir)]
-              (if files
-                {:success true
-                 :listing (str/join "\n" (map #(.getName %) files))}
-                {:success false
-                 :error (str "Failed to list directory: " path " - Permission denied or I/O error.")})))))
-
+      (or (validate-dir-path path)
+          (let [dir (io/file path)]
+            (or (validate-dir-exists dir path)
+                (validate-is-directory dir path)
+                (do-list-dir dir path))))
       (catch Exception e
         {:success false
          :error (str "Failed to list directory: " path " - " (.getMessage e))}))))
