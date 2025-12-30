@@ -91,6 +91,12 @@
       (is (re-find #"sample.txt" (:listing result)))
       (is (re-find #"another_sample.txt" (:listing result)))))
 
+  (testing "list-dir! returns error for nil path"
+    (let [fs default-fs
+          result (list-dir! fs nil)]
+      (is (= false (:success result)))
+      (is (re-find #"dir_path parameter is required" (:error result)))))
+
   (testing "list-dir! returns error for non-existent directory"
     (let [fs default-fs
           dir-path "nonexistent_dir/"
