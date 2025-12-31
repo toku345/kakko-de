@@ -66,6 +66,7 @@ Evaluate the `def` forms to override settings at runtime.
 ## Notes
 
 - openai-clojure uses `:api-endpoint` (not `:base-url`) for custom endpoints
+- `tool-registry` keys must match the `:name` in tool definitions (e.g., `"list_dir"` in both). A mismatch causes `execute-tool` to return "Unknown tool" error since dispatch is by name.
 
 ## Testing
 

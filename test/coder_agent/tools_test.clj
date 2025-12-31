@@ -2,43 +2,57 @@
   (:require
    [clojure.java.io :as io]
    [clojure.test :refer [deftest is testing use-fixtures]]
-   [coder-agent.protocols :refer [FileSystem read-file! write-file!]]
+   [coder-agent.protocols :refer [FileSystem list-dir! read-file! write-file!]]
    [coder-agent.schema :as schema]
    [coder-agent.test-helper :as helper]
    [coder-agent.tools :as tools :refer [default-fs]]
-   [malli.core :as m]))
+   [malli.core :as m]
+   [cheshire.core :as json]))
 
-(defrecord MockFileSystem [calls]
+(defrecord MockFileSystem [calls config]
   FileSystem
   (write-file! [_ path content]
-    (swap! calls conj {:path path :content content})
-    {:success true :file_path path})
-  (read-file! [_ path]
-    (let [content (str "Mock content of " path)]
-      {:success true :content content})))
+    (swap! calls conj {:op :write-file :path path :content content})
+    (if-let [error (:write-file-error @config)]
+      {:success false :error error}
+      {:success true :file_path path}))
 
-(defn mock-fs []
-  (->MockFileSystem (atom [])))
+  (read-file! [_ path]
+    (swap! calls conj {:op :read-file :path path})
+    (if-let [error (:read-file-error @config)]
+      {:success false :error error}
+      {:success true :content (str "Mock content of " path)}))
+
+  (list-dir! [_ path]
+    (swap! calls conj {:op :list-dir :path path})
+    (if-let [error (:list-dir-error @config)]
+      {:success false :error error}
+      {:success true :listing (str "Mocked listing of " path)})))
+
+(defn mock-fs
+  ([] (mock-fs {}))
+  ([opts]
+   (->MockFileSystem (atom []) (atom opts))))
 
 (use-fixtures :once helper/with-instrumentation)
 
 ;; === RealFileSystem Tests ===
 
-(def test-file-path "test/test_integration_output.txt")
+(def test-write-file-path "test/test_integration_output.txt")
 (def test-read-file-path "test/fixtures/sample.txt")
 
 (defn cleanup-test-file [f]
   (try
     (f)
     (finally
-      (io/delete-file test-file-path true))))
+      (io/delete-file test-write-file-path true))))
 
 (use-fixtures :each cleanup-test-file)
 
 (deftest write-file!-test
   (testing "write-file! writes to actual file system"
     (let [fs default-fs
-          file-path test-file-path
+          file-path test-write-file-path
           content "Test content."
           result (write-file! fs file-path content)]
       (is (= {:success true :file_path file-path} result))
@@ -68,6 +82,46 @@
       (is (re-find #"Failed to read file:" (:error result)))
       (is (re-find #"No such file or directory" (:error result))))))
 
+(deftest list-dir!-test
+  (testing "list-dir! lists files in specified directory"
+    (let [fs default-fs
+          dir-path "test/fixtures"
+          result (list-dir! fs dir-path)]
+      (is (= true (:success result)))
+      (is (re-find #"sample.txt" (:listing result)))
+      (is (re-find #"another_sample.txt" (:listing result)))))
+
+  (testing "list-dir! returns error for nil path"
+    (let [fs default-fs
+          result (list-dir! fs nil)]
+      (is (= false (:success result)))
+      (is (re-find #"dir_path parameter is required" (:error result)))))
+
+  (testing "list-dir! returns error for non-existent directory"
+    (let [fs default-fs
+          dir-path "nonexistent_dir/"
+          result (list-dir! fs dir-path)]
+      (is (= false (:success result)))
+      (is (re-find #"Failed to list directory:" (:error result)))
+      (is (re-find #"Directory does not exist" (:error result)))))
+
+  (testing "list-dir! handle empty directory"
+    (let [empty-dir (io/file "test/fixtures/empty_dir")]
+      (.mkdir empty-dir)
+      (try
+        (let [result (list-dir! default-fs (.getPath empty-dir))]
+          (is (= true (:success result)))
+          (is (= "" (:listing result))))
+        (finally
+          (.delete empty-dir)))))
+
+  (testing "list-dir! returns error when path points to a file"
+    (let [fs default-fs
+          file-path test-read-file-path
+          result (list-dir! fs file-path)]
+      (is (= false (:success result)))
+      (is (re-find #"is a file, not a directory" (:error result))))))
+
 ;; === Wrapper Function Tests ===
 
 (deftest write-file-test
@@ -75,7 +129,7 @@
     (let [fs (mock-fs)
           result (tools/write-file {:file_path "test.txt" :content "hello"} :fs fs)]
       (is (= {:success true :file_path "test.txt"} result))
-      (is (= [{:path "test.txt" :content "hello"}] @(:calls fs))))))
+      (is (= [{:op :write-file :path "test.txt" :content "hello"}] @(:calls fs))))))
 
 (deftest read-file-test
   (testing "read-file delegates to FileSystem protocol"
@@ -83,7 +137,26 @@
           result (tools/read-file {:file_path "test.txt"} :fs fs)]
       (is (= {:success true :content "Mock content of test.txt"} result)))))
 
+(deftest list-dir-test
+  (testing "list-dir delegates to FileSystem protocol with correct path"
+    (let [fs (mock-fs)
+          result (tools/list-dir {:dir_path "/some/dir"} :fs fs)]
+      (is (= {:success true :listing "Mocked listing of /some/dir"} result))
+      (is (= [{:op :list-dir :path "/some/dir"}] @(:calls fs))))))
+
+(deftest list-dir-error-simulation-test
+  (testing "list-dir returns error when MockFileSystem is configured with error"
+    (let [fs (mock-fs {:list-dir-error "Simulated I/O error"})
+          result (tools/list-dir {:dir_path "/some/dir"} :fs fs)]
+      (is (= {:success false :error "Simulated I/O error"} result)))))
+
 ;; === Tool Dispatcher Tests ===
+
+(deftest tool-registry-test
+  (testing "tool-registry contains correct tool functions"
+    (is (= tools/write-file (get tools/tool-registry "write_file")))
+    (is (= tools/read-file (get tools/tool-registry "read_file")))
+    (is (= tools/list-dir (get tools/tool-registry "list_dir")))))
 
 (deftest execute-tool-test
   (testing "execute-tool dispatches to correct tool."
@@ -106,6 +179,33 @@
           result (tools/execute-tool tool-call)]
       (is (= false (:success result)))
       (is (re-find #"Tool execution failed" (:error result))))))
+
+(deftest execute-tool-dispatch-test
+  (testing "dispatches write_file with correct arguments"
+    (let [file-path test-write-file-path
+          content "hello"
+          tool-call {:function {:name "write_file"
+                                :arguments (json/generate-string {:file_path file-path
+                                                                  :content content})}}
+          result (tools/execute-tool tool-call)]
+      (is (:success result))
+      (is (= content (slurp file-path)))))
+
+  (testing "dispatches read_file with correct arguments"
+    (let [file-path test-read-file-path
+          tool-call {:function {:name "read_file"
+                                :arguments (json/generate-string {:file_path file-path})}}
+          result (tools/execute-tool tool-call)]
+      (is (:success result))
+      (is (re-find #"Sample.txt" (:content result)))))
+
+  (testing "dispatches list_dir with correct arguments"
+    (let [dir-path "test/fixtures"
+          tool-call {:function {:name "list_dir"
+                                :arguments (json/generate-string {:dir_path dir-path})}}
+          result (tools/execute-tool tool-call)]
+      (is (:success result))
+      (is (re-find #"sample.txt" (:listing result))))))
 
 ;; === Schema Contract Tests ===
 

@@ -1,7 +1,37 @@
 (ns coder-agent.tools
-  (:require [cheshire.core :as json]
-            [coder-agent.protocols :refer [FileSystem write-file! read-file!]]
-            [coder-agent.schema :as schema]))
+  (:require
+   [cheshire.core :as json]
+   [clojure.java.io :as io]
+   [clojure.string :as str]
+   [coder-agent.protocols :refer [FileSystem list-dir! read-file! write-file!]]
+   [coder-agent.schema :as schema]))
+
+;; === Private helper functions ===
+
+(defn- validate-dir-path [dir_path]
+  (when (nil? dir_path)
+    {:success false
+     :error "Failed to list directory: dir_path parameter is required."}))
+
+(defn- validate-dir-exists [dir path]
+  (when-not (.exists dir)
+    {:success false
+     :error (str "Failed to list directory: " path " - Directory does not exist.")}))
+
+(defn- validate-is-directory [dir path]
+  (when-not (.isDirectory dir)
+    {:success false
+     :error (str "Failed to list directory: " path
+                 " - Path exists but is a file, not a directory. Use read_file tool instead.")}))
+
+(defn do-list-dir [dir path]
+  (if-let [files (.listFiles dir)]
+    {:success true
+     :listing (str/join "\n" (map #(.getName %) files))}
+    {:success false
+     :error (str "Failed to list directory: " path " - Permission denied or I/O error.")}))
+
+;; === RealFileSystem ===
 
 (defrecord RealFileSystem []
   FileSystem
@@ -20,7 +50,18 @@
         {:success true :content content})
       (catch Exception e
         {:success false
-         :error (str "Failed to read file: " path " - " (.getMessage e))}))))
+         :error (str "Failed to read file: " path " - " (.getMessage e))})))
+
+  (list-dir! [_ path]
+    (try
+      (or (validate-dir-path path)
+          (let [dir (io/file path)]
+            (or (validate-dir-exists dir path)
+                (validate-is-directory dir path)
+                (do-list-dir dir path))))
+      (catch Exception e
+        {:success false
+         :error (str "Failed to list directory: " path " - " (.getMessage e))}))))
 
 (def default-fs (->RealFileSystem))
 
@@ -54,10 +95,27 @@
                                                     :description "Absolute path to the file."}}
                            :required ["file_path"]}}})
 
+(defn list-dir
+  "List files in the specified directory path.
+   Returns {:success true :listing \"file1\\nfile2\\n...\"} with newline-separated names,
+   or {:success false :error msg} on failure."
+  [{:keys [dir_path]} & {:keys [fs] :or {fs default-fs}}]
+  (list-dir! fs dir_path))
+
+(def list-dir-tool
+  {:type "function"
+   :function {:name "list_dir"
+              :description "List files in a directory. Returns newline-separated filenames."
+              :parameters {:type "object"
+                           :properties {:dir_path {:type "string"
+                                                   :description "Absolute path to the directory."}}
+                           :required ["dir_path"]}}})
+
 ;; Tool registry & dispatcher
 (def tool-registry
   {"write_file" write-file
-   "read_file" read-file})
+   "read_file" read-file
+   "list_dir" list-dir})
 
 (defn execute-tool
   "Execute a tool call from LLM response."
@@ -82,6 +140,8 @@
   (write-file! default-fs "test_output_2" "Test content made via protocol!")
 
   (read-file! default-fs "test/fixtures/sample.txt")
+
+  (list-dir! default-fs "test/fixtures")
 
   (execute-tool
    {:function

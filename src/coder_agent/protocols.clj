@@ -10,6 +10,10 @@
   (read-file! [this path]
     "Reads content from a file at the specified path.
      Returns a ResultMap: {:success true :content content} on success,
+     or {:success false :error msg} on failure.")
+  (list-dir! [this path]
+    "Lists files in the directory at the specified path.
+     Returns a ResultMap: {:success true :listing listing} on success,
      or {:success false :error msg} on failure."))
 
 (defprotocol LLMClient

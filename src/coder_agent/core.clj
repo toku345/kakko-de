@@ -8,7 +8,7 @@
   (or (System/getenv "OPENAI_MODEL")
       "gpt-5-mini"))
 
-(def available-tools [tools/write-tool tools/read-tool])
+(def available-tools [tools/write-tool tools/read-tool tools/list-dir-tool])
 
 (def default-client
   "Default LLM client created from environment variables."
