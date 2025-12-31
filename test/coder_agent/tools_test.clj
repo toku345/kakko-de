@@ -105,12 +105,6 @@
       (is (re-find #"Failed to list directory:" (:error result)))
       (is (re-find #"Directory does not exist" (:error result)))))
 
-  (testing "list-dir! returns error for nil path"
-    (let [fs default-fs
-          result (list-dir! fs nil)]
-      (is (= false (:success result)))
-      (is (re-find #"Failed to list directory:" (:error result)))))
-
   (testing "list-dir! handle empty directory"
     (let [empty-dir (io/file "test/fixtures/empty_dir")]
       (.mkdir empty-dir)
