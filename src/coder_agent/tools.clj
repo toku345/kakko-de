@@ -24,10 +24,18 @@
      :error (str "Failed to list directory: " path
                  " - Path exists but is a file, not a directory. Use read_file tool instead.")}))
 
+(defn- format-entry
+  "Format a file entry, appending / suffix for directories"
+  [file]
+  (let [name (.getName file)]
+    (if (.isDirectory file)
+      (str name "/")
+      name)))
+
 (defn do-list-dir [dir path]
   (if-let [files (.listFiles dir)]
     {:success true
-     :listing (str/join "\n" (map #(.getName %) files))}
+     :listing (str/join "\n" (map format-entry files))}
     {:success false
      :error (str "Failed to list directory: " path " - Permission denied or I/O error.")}))
 
@@ -105,7 +113,7 @@
 (def list-dir-tool
   {:type "function"
    :function {:name "list_dir"
-              :description "List files in a directory. Returns newline-separated filenames."
+              :description "List files in a directory. Returns newline-separated filenames. Directory entries are suffixed with '/'."
               :parameters {:type "object"
                            :properties {:dir_path {:type "string"
                                                    :description "Absolute path to the directory."}}

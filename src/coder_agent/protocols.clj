@@ -14,7 +14,8 @@
   (list-dir! [this path]
     "Lists files in the directory at the specified path.
      Returns a ResultMap: {:success true :listing listing} on success,
-     or {:success false :error msg} on failure."))
+     or {:success false :error msg} on failure.
+     Directory entries are suffixed with '/' (e.g., 'subdir/')."))
 
 (defprotocol LLMClient
   "Protocol for LLM API integrations."
