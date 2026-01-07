@@ -104,7 +104,7 @@
           dir-path "test/fixtures"
           result (list-dir! fs dir-path)]
       (is (= true (:success result)))
-      (is (re-find #"sample\.txt$" (:listing result))
+      (is (re-find #"(?m)sample\.txt$" (:listing result))
           "File entries should not have trailing slash")
       (is (not (re-find #"sample\.txt/" (:listing result)))
           "File entries should not have trailing slash")))
