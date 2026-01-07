@@ -91,6 +91,24 @@
       (is (re-find #"sample.txt" (:listing result)))
       (is (re-find #"another_sample.txt" (:listing result)))))
 
+  (testing "list-dir! appends / suffix to directories"
+    (let [fs default-fs
+          dir-path "test/fixtures"
+          result (list-dir! fs dir-path)]
+      (is (= true (:success result)))
+      (is (re-find #"subdir/" (:listing result))
+          "Directory entries should have trailing slash")))
+
+  (testing "list-dir! does not append / suffix to files"
+    (let [fs default-fs
+          dir-path "test/fixtures"
+          result (list-dir! fs dir-path)]
+      (is (= true (:success result)))
+      (is (re-find #"(?m)^sample\.txt$" (:listing result))
+          "File entries should not have trailing slash")
+      (is (not (re-find #"sample\.txt/" (:listing result)))
+          "File entries should not have trailing slash")))
+
   (testing "list-dir! returns error for nil path"
     (let [fs default-fs
           result (list-dir! fs nil)]
