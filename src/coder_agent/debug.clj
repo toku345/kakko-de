@@ -3,20 +3,23 @@
   (:require [cheshire.core :as json]))
 
 (def ^:dynamic *debug-enabled*
-  "Dynamic var for debug mode. Defaults to DEBUG env var."
+  "Dynamic var for debug mode. True if DEBUG env var is exactly \"true\", false otherwise."
   (= "true" (System/getenv "DEBUG")))
 
 (defn format-json
-  "Pretty-print JSON string or Clojure map"
+  "Pretty-print JSON string or Clojure map. Returns original data if JSON parsing fails."
   [data]
   (if (string? data)
     (try
       (json/generate-string (json/parse-string data) {:pretty true})
-      (catch Exception _ data))
+      (catch Exception e
+        (when *debug-enabled*
+          (println "[DEBUG] JSON formatting failed:" (.getMessage e)))
+        data))
     (json/generate-string data {:pretty true})))
 
 (defn- truncate
-  "Truncate string to max-len characters, appending '...' if truncated."
+  "Truncate string to max-len characters, appending '...' if truncated. Returns s unchanged if nil or within limit."
   [s max-len]
   (if (and s (> (count s) max-len))
     (str (subs s 0 max-len) "...")
@@ -45,7 +48,7 @@
     (println "=================================")))
 
 (defn log-response
-  "Log LLM response details when Debug mode is enabled."
+  "Log LLM response details when debug mode is enabled."
   [response]
   (when *debug-enabled*
     (println "\n========== LLM RESPONSE ==========")
@@ -67,7 +70,7 @@
     (println "=================================")))
 
 (defn log-tool-execution
-  "Log tool execution details when Debug mode is enabled."
+  "Log tool execution details when debug mode is enabled."
   [tool-call result]
   (when *debug-enabled*
     (println "\n---------- Tool Execution ----------")
