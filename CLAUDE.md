@@ -55,6 +55,7 @@ The namespace convention is `coder-agent.*` (hyphenated in namespace declaration
 | `OPENAI_API_KEY` | API key | (required) |
 | `OPENAI_API_ENDPOINT` | API endpoint | OpenAI API |
 | `OPENAI_MODEL` | Model name | `gpt-5-mini` |
+| `DEBUG` | Enable debug logging | `false` |
 
 Setup: `cp .envrc.example .envrc && direnv allow`
 
