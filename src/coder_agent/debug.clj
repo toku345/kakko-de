@@ -39,7 +39,7 @@
       (when-let [tool-call-id (:tool_call_id msg)]
         (println (str "    tool_call_id: " tool-call-id)))
       (when-let [content (:content msg)]
-        (println "   " (truncate content 200)))
+        (println (str "    " (truncate content 200))))
       (when-let [tool-calls (:tool_calls msg)]
         (println "   tool_calls:")
         (doseq [tc tool-calls]
