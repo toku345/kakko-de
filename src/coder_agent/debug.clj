@@ -7,16 +7,14 @@
   (= "true" (System/getenv "DEBUG")))
 
 (defn format-json
-  "Pretty-print JSON string or Clojure map. Returns original data if JSON parsing fails."
+  "Format JSON data as pretty-printed string.
+   Returns nil on failure (nil-punning pattern)."
   [data]
-  (if (string? data)
-    (try
+  (try
+    (if (string? data)
       (json/generate-string (json/parse-string data) {:pretty true})
-      (catch Exception e
-        (when *debug-enabled*
-          (println "[DEBUG] JSON formatting failed:" (.getMessage e)))
-        data))
-    (json/generate-string data {:pretty true})))
+      (json/generate-string data {:pretty true}))
+    (catch Exception _ nil)))
 
 (defn- truncate
   "Truncate string to max-len characters, appending '...' if truncated. Returns s unchanged if nil or within limit."
@@ -44,7 +42,8 @@
         (println "   tool_calls:")
         (doseq [tc tool-calls]
           (println (str "      - " (-> tc :function :name)))
-          (println (str "        args: " (format-json (-> tc :function :arguments)))))))
+          (let [args (-> tc :function :arguments)]
+            (println (str "        args: " (or (format-json args) args)))))))
     (println "=================================")))
 
 (defn log-response
@@ -66,7 +65,8 @@
           (println (str "  ID: " (:id tc)))
           (println (str "  Function: " (-> tc :function :name)))
           (println "  Arguments:")
-          (println (str "    " (format-json (-> tc :function :arguments)))))))
+          (let [args (-> tc :function :arguments)]
+            (println (str "    " (or (format-json args) args)))))))
     (println "=================================")))
 
 (defn log-tool-execution
@@ -75,7 +75,8 @@
   (when *debug-enabled*
     (println "\n---------- Tool Execution ----------")
     (println "Tool:" (-> tool-call :function :name))
-    (println "Args:" (format-json (-> tool-call :function :arguments)))
+    (let [args (-> tool-call :function :arguments)]
+      (println (str "Args: " (or (format-json args) args))))
     (println "Result:" (if (:success result) "SUCCESS" "FAILURE"))
     (when-not (:success result)
       (println "Error:" (:error result)))

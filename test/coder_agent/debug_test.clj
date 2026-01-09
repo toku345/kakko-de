@@ -13,8 +13,8 @@
       (is (string? result))
       (is (re-find #"\"a\"" result))))
 
-  (testing "invalid JSON string returns original"
-    (is (= "not json" (debug/format-json "not json"))))
+  (testing "invalid JSON string returns nil"
+    (is (nil? (debug/format-json "not json"))))
 
   (testing "Clojure map"
     (let [result (debug/format-json {:a 1})]
