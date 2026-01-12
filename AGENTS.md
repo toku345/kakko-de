@@ -54,24 +54,8 @@ clj -M:fmt/fix     # Auto-fix formatting
 - Namespace: hyphenated (`coder-agent.tools`)
 - File path: underscored (`src/coder_agent/tools.clj`)
 - Tool names: underscored for OpenAI API (`"write_file"`, `"read_file"`)
+- JSON keys: snake_case for OpenAI API compatibility (`file_path`, `dir_path`)
 - Clojure functions: hyphenated (`write-file`, `read-file`)
-
-### Import Order & Formatting
-
-- Organize requires alphabetically: external libs → clojure.* → project namespaces
-- 2-space indentation, cljfmt defaults (run `clj -M:fmt/fix` before committing)
-- Docstrings on public functions
-
-### Naming Conventions
-
-| Type | Convention | Example |
-|------|------------|---------|
-| Functions | kebab-case | `execute-tool`, `read-file` |
-| Protocols | PascalCase | `FileSystem`, `LLMClient` |
-| Records | PascalCase | `OpenAIClient`, `RealFileSystem` |
-| Constants | kebab-case | `default-model`, `available-tools` |
-| Side-effect fns | suffix with `!` | `write-file!`, `read-file!` |
-| Private fns | prefix with `-` | `(defn- validate-dir-path ...)` |
 
 ### Error Handling
 
@@ -124,21 +108,8 @@ clj -M:fmt/fix     # Auto-fix formatting
 
 ## Testing
 
-### Test Structure
-
-| File | Purpose |
-|------|---------|
-| `test/coder_agent/core_test.clj` | Unit tests for core functionality |
-| `test/coder_agent/tools_test.clj` | Tool and FileSystem tests |
-| `test/coder_agent/integration_test.clj` | Real API tests (`^:integration`) |
-| `test/coder_agent/test_helper.clj` | Test utilities |
-
-### Design Principles
-
-- **No `with-redefs`** - Avoid global state mutation for parallel test safety
-- **Protocol/Record pattern** - Enables mock implementations
-- **Test selector** - Integration tests use `^:integration` metadata
-- **Inject mocks via keyword args:** `(tools/read-file {:file_path "test.txt"} :fs (mock-fs))`
+- Integration tests use `^:integration` metadata (excluded by default)
+- Inject mocks via keyword args: `(tools/read-file {:file_path "test.txt"} :fs (mock-fs))`
 
 ## Environment Variables
 
