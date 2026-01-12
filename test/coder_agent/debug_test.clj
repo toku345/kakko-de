@@ -26,16 +26,16 @@
 (deftest truncate-test
   (let [truncate #'debug/truncate]
     (testing "short string unchanged"
-      (is (= "abc" (truncate "abc" 10))))
+      (is (= "abc" (truncate "abc" :max-len 10))))
 
     (testing "long string truncated with ellipsis"
-      (is (= "abcde..." (truncate "abcdefghijk" 5))))
+      (is (= "abcde..." (truncate "abcdefghijk" :max-len 5))))
 
     (testing "nil returns nil"
-      (is (nil? (truncate nil 10))))
+      (is (nil? (truncate nil :max-len 10))))
 
     (testing "boundary - exact length unchanged"
-      (is (= "abcde" (truncate "abcde" 5))))))
+      (is (= "abcde" (truncate "abcde" :max-len 5))))))
 
 ;; === log-request ===
 

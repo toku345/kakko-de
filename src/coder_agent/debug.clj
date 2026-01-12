@@ -2,9 +2,25 @@
   "Debug logging utilities for LLM request/response visibility."
   (:require [cheshire.core :as json]))
 
+(def max-context-length
+  "Maximum length for truncated content display."
+  200)
+
 (def ^:dynamic *debug-enabled*
-  "Dynamic var for debug mode. True if DEBUG env var is exactly \"true\", false otherwise."
+  "Dynamic var for debug mode. nil means use debug-enabled? function."
+  nil)
+
+(defn debug-enabled?
+  "Check if debug mode is enabled. Evaluates DEBUG env var on each call."
+  []
   (= "true" (System/getenv "DEBUG")))
+
+(defn debug-active?
+  "Check if debug is active. Binding takes precedence over env var."
+  []
+  (if (some? *debug-enabled*)
+    *debug-enabled*
+    (debug-enabled?)))
 
 (defn format-json
   "Format JSON data as pretty-printed string.
@@ -19,7 +35,7 @@
 (defn- truncate
   "Truncate string to max-len characters, appending '...' if truncated.
    Non-string values are converted to string first."
-  [s max-len]
+  [s & {:keys [max-len] :or {max-len max-context-length}}]
   (when s
     (let [s (str s)]
       (if (> (count s) max-len)
@@ -40,7 +56,7 @@
       (when-let [tool-call-id (:tool_call_id msg)]
         (println (str "    tool_call_id: " tool-call-id)))
       (when-let [content (:content msg)]
-        (println (str "    " (truncate content 200))))
+        (println (str "    " (truncate content))))
       (when-let [tool-calls (:tool_calls msg)]
         (println "    tool_calls:")
         (doseq [tc tool-calls]
