@@ -17,11 +17,14 @@
     (catch Exception _ nil)))
 
 (defn- truncate
-  "Truncate string to max-len characters, appending '...' if truncated. Returns s unchanged if nil or within limit."
+  "Truncate string to max-len characters, appending '...' if truncated.
+   Non-string values are converted to string first."
   [s max-len]
-  (if (and s (> (count s) max-len))
-    (str (subs s 0 max-len) "...")
-    s))
+  (when s
+    (let [s (str s)]
+      (if (> (count s) max-len)
+        (str (subs s 0 max-len) "...")
+        s))))
 
 (defn log-request
   "Log LLM request details when debug mode is enabled."
@@ -39,7 +42,7 @@
       (when-let [content (:content msg)]
         (println (str "    " (truncate content 200))))
       (when-let [tool-calls (:tool_calls msg)]
-        (println "   tool_calls:")
+        (println "    tool_calls:")
         (doseq [tc tool-calls]
           (println (str "      - " (-> tc :function :name)))
           (let [args (-> tc :function :arguments)]

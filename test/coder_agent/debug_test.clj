@@ -52,7 +52,7 @@
   (testing "no output when debug disabled"
     (let [output (with-out-str
                    (binding [debug/*debug-enabled* false]
-                     (debug/log-request {:choices [{:message {}}]})))]
+                     (debug/log-request {:model "test" :messages [] :tools []})))]
       (is (= "" output))))
 
   (testing "handle empty messages and tools"
