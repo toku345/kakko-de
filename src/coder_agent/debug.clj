@@ -72,6 +72,64 @@
         (str (subs s 0 max-len) "...")
         s))))
 
+(defn- format-message
+  "Format a single message for request log output."
+  [msg]
+  (str "  [" (:role msg) "]\n"
+       (when-let [tool-call-id (:tool_call_id msg)]
+         (str "    tool_call_id:" tool-call-id "\n"))
+       (when-let [content (:content msg)]
+         (str "    " (truncate content) "\n"))
+       (when-let [tool-calls (:tool_calls msg)]
+         (str "    tool_calls:\n"
+              (->> tool-calls
+                   (map (fn [tc]
+                          (let [args (-> tc :function :arguments)]
+                            (str "      - " (-> tc :function :name) "\n"
+                                 "        args: " (or (format-json args) args) "\n"))))
+                   (apply str))))))
+(defn format-request-summary
+  "Format request summary as log string."
+  [summary]
+  (str "\n========== LLM REQUEST ==========\n"
+       "Model: " (:model summary) "\n"
+       "Message count: " (:message-count summary) "\n"
+       "Tool count: " (:tools-count summary) "\n"
+       "\n--- Message ---\n"
+       (->> (:messages summary)
+            (map format-message)
+            (apply str))))
+
+(defn format-response-summary
+  "Format response summary as log string."
+  [summary]
+  (str "\n========== LLM RESPONSE ==========\n"
+       "Finish reason: " (:finish_reason summary) "\n"
+       (when-let [content (:content summary)]
+         (str "\n--- Content ---\n"
+              content "\n"))
+       (when (seq (:tool_calls summary))
+         (str "\n--- Tool Calls ---\n"
+              (->> (:tool_calls summary)
+                   (map (fn [tc]
+                          (let [args (-> tc :function :arguments)]
+                            (str "  ID: " (:id tc) "\n"
+                                 "  Function: " (-> tc :function :name) "\n"
+                                 "  Arguments:\n"
+                                 "    " (or (format-json args) args) "\n"))))
+                   (apply str))))
+       "=================================\n"))
+
+(defn format-tool-execution-summary
+  "Format tool execution summary as log string."
+  [summary]
+  (str "\n---------- Tool Execution ----------\n"
+       "Tool: " (:tool-name summary) "\n"
+       "Args: " (or (format-json (:arguments summary)) (:arguments summary)) "\n"
+       "Result: " (if (:success summary) "SUCCESS" "FAILURE") "\n"
+       (when-not (:success summary)
+         (str "Error: " (:error summary) "\n"))
+       "------------------------------------\n"))
 (defn log-request
   "Log LLM request details when debug mode is enabled."
   [request]

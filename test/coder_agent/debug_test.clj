@@ -72,6 +72,99 @@
       (is (false? (:success summary)))
       (is (= "Permission denied" (:error summary))))))
 
+(deftest format-request-summary-test
+  (testing "formats basic request info"
+    (let [summary {:model "gpt-4"
+                   :message-count 2
+                   :tools-count 1
+                   :messages []}
+          output (debug/format-request-summary summary)]
+      (is (string? output))
+      (is (re-find #"LLM REQUEST" output))
+      (is (re-find #"Model: gpt-4" output))
+      (is (re-find #"Message count: 2" output))
+      (is (re-find #"Tool count: 1" output))))
+
+  (testing "formats message content"
+    (let [summary {:model "test"
+                   :message-count 1
+                   :tools-count 0
+                   :messages [{:role "user"
+                               :content "hello world"
+                               :tool_call_id nil
+                               :tool_calls nil}]}
+          output (debug/format-request-summary summary)]
+      (is (re-find #"\[user\]" output))
+      (is (re-find #"hello world" output))))
+
+  (testing "truncates long context"
+    (let [long-content (apply str (repeat 201 "x"))
+          summary {:model "test"
+                   :message-count 1
+                   :tools-count 0
+                   :messages [{:role "user"
+                               :content long-content
+                               :tool_call_id nil
+                               :tool_calls nil}]}
+          output (debug/format-request-summary summary)]
+      (is (re-find #"\.\.\." output))
+      (is (not (re-find (re-pattern long-content) output))))))
+
+(deftest format-response-summary-test
+  (testing "formats finish_reason and content"
+    (let [summary {:finish_reason "stop"
+                   :content "Hello, world!"
+                   :tool_calls []}
+          output (debug/format-response-summary summary)]
+      (is (string? output))
+      (is (re-find #"LLM RESPONSE" output))
+      (is (re-find #"Finish reason:.*stop" output))
+      (is (re-find #"--- Content ---" output))
+      (is (re-find #"Hello, world!" output))))
+
+  (testing "formats tool_calls"
+    (let [summary {:finish_reason "tool_calls"
+                   :content nil
+                   :tool_calls [{:id "call_123"
+                                 :function {:name "read_file"
+                                            :arguments "{\"path\":\"/tmp\"}"}}]}
+          output (debug/format-response-summary summary)]
+      (is (re-find #"--- Tool Calls ---" output))
+      (is (re-find #"ID: call_123" output))
+      (is (re-find #"Function: read_file" output))))
+
+  (testing "handles empty response"
+    (let [summary {:finish_reason nil
+                   :content nil
+                   :tool_calls nil}
+          output (debug/format-response-summary summary)]
+      (is (re-find #"LLM RESPONSE" output))
+      (is (not (re-find #"--- Content ---" output)))
+      (is (not (re-find #"--- Tool Calls ---" output))))))
+
+(deftest format-tool-execution-summary-test
+  (testing "formats success case"
+    (let [summary {:tool-name "read_file"
+                   :arguments "{\"path\":\"/tmp\"}"
+                   :success true
+                   :error nil}
+          output (debug/format-tool-execution-summary summary)]
+      (is (string? output))
+      (is (re-find #"Tool Execution" output))
+      (is (re-find #"Tool: read_file" output))
+      (is (re-find #"Args:" output))
+      (is (re-find #"Result: SUCCESS" output))))
+
+  (testing "formats failure case"
+    (let [summary {:tool-name "write_file"
+                   :arguments "{}"
+                   :success false
+                   :error "Permission denied"}
+          output (debug/format-tool-execution-summary summary)]
+      (is (re-find #"Tool: write_file" output))
+      (is (re-find #"Result: FAILURE" output))
+      (is (re-find #"Error: Permission denied" output)))))
+
 ;; === format-json ===
 
 (deftest format-json-test
