@@ -221,6 +221,22 @@
                      (debug/log-request {:model "m" :messages [] :tools []})))]
       (is (re-find #"Message count: 0" output)))))
 
+(deftest log-request-with-options-test
+  (testing "uses custom output-fn"
+    (let [captured (atom "")]
+      (debug/log-request {:model "test" :messages [] :tools []}
+                         :output-fn #(reset! captured %)
+                         :enabled? true)
+      (is (string? @captured))
+      (is (re-find #"test" @captured))))
+
+  (testing "respects enabled? false"
+    (let [captured (atom nil)]
+      (debug/log-request {:model "test" :messages [] :tools []}
+                         :output-fn #(reset! captured %)
+                         :enabled? false)
+      (is (nil? @captured)))))
+
 ;; === log-response ===
 
 (deftest log-response-test
@@ -243,6 +259,23 @@
                    (binding [debug/*debug-enabled* true]
                      (debug/log-response {:choices []})))]
       (is (re-find #"LLM RESPONSE" output)))))
+
+(deftest log-response-with-options-test
+  (testing "uses custom output-fn"
+    (let [captured (atom nil)]
+      (debug/log-response {:choices [{:finish_reason "stop"
+                                      :message {:content "hi"}}]}
+                          :output-fn #(reset! captured %)
+                          :enabled? true)
+      (is (string? @captured))
+      (is (re-find #"stop" @captured))))
+
+  (testing "respects enabled? false"
+    (let [captured (atom nil)]
+      (debug/log-response {:choices [{:message {}}]}
+                          :output-fn #(reset! captured %)
+                          :enabled? false)
+      (is (nil? @captured)))))
 
 ;; === log-tool-execution ===
 
@@ -272,3 +305,21 @@
                       {:function {:name "test" :arguments "{}"}}
                       {:success true})))]
       (is (= "" output)))))
+
+(deftest log-tool-execution-test-with-options
+  (testing "uses custom output-fn"
+    (let [captured (atom nil)]
+      (debug/log-tool-execution {:function {:name "read_file" :arguments "{}"}}
+                                {:success true}
+                                :output-fn #(reset! captured %)
+                                :enabled? true)
+      (is (string? @captured))
+      (is (re-find #"read_file" @captured))))
+
+  (testing "respects enabled? false"
+    (let [captured (atom nil)]
+      (debug/log-tool-execution {:function {:name "test_tool" :arguments "{}"}}
+                                {:success true}
+                                :output-fn #(reset! captured %)
+                                :enabled? false)
+      (is (nil? @captured)))))
