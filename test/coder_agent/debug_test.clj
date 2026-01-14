@@ -5,6 +5,73 @@
 
 (use-fixtures :each helper/with-instrumentation)
 
+(deftest extract-request-summary-test
+  (testing "extracts model and counts"
+    (let [summary (debug/extract-request-summary
+                   {:model "gpt-4"
+                    :messages [{:role "user" :content "hello"}]
+                    :tools [{:type "function" :function {:name "read_file"}}]})]
+      (is (= "gpt-4" (:model summary)))
+      (is (= 1 (:message-count summary)))
+      (is (= 1 (:tools-count summary)))))
+
+  (testing "extracts message details"
+    (let [summary (debug/extract-request-summary
+                   {:model "test"
+                    :messages [{:role "assistant"
+                                :content "hi"
+                                :tool_calls [{:id "1" :function {:name "test"}}]}]
+                    :tools []})]
+      (is (= 1 (count (:messages summary))))
+      (is (= "assistant" (-> summary :messages first :role)))
+      (is (= "hi" (-> summary :messages first :content))))))
+
+(deftest extract-response-summary-test
+  (testing "extracts finish_reason and content"
+    (let [summary (debug/extract-response-summary
+                   {:choices [{:finish_reason "stop"
+                               :message {:content "Hello!"}}]})]
+      (is (= "stop" (:finish_reason summary)))
+      (is (= "Hello!" (:content summary)))
+      (is (nil? (:tool_calls summary)))))
+
+  (testing "extracts tool_calls"
+    (let [summary (debug/extract-response-summary
+                   {:choices [{:finish_reason "tool_calls"
+                               :message {:tool_calls [{:id "call_123"
+                                                       :name "read_file"
+                                                       :args "{\"path\":\"tmp\"}"}]}}]})]
+      (is (= "tool_calls" (:finish_reason summary)))
+      (is (= 1 (count (:tool_calls summary))))
+      (is (= "call_123" (-> summary :tool_calls first :id)))
+      (is (= "read_file" (-> summary :tool_calls first :name)))))
+
+  (testing "handles empty choices"
+    (let [summary (debug/extract-response-summary
+                   {:choices []})]
+      (is (nil? (:finish_reason summary)))
+      (is (nil? (:content summary))))))
+
+(deftest extract-tool-execution-summary-test
+  (testing "extracts success case"
+    (let [summary (debug/extract-tool-execution-summary
+                   {:function {:name "read_file"
+                               :arguments "{\"path\":\"/tmp\"}"}}
+                   {:success true})]
+      (is (= "read_file" (:tool-name summary)))
+      (is (= "{\"path\":\"/tmp\"}" (:arguments summary)))
+      (is (true? (:success summary)))
+      (is (nil? (:error summary)))))
+
+  (testing "extracts failure case"
+    (let [summary (debug/extract-tool-execution-summary
+                   {:function {:name "write_file"
+                               :arguments "{}"}}
+                   {:success false :error "Permission denied"})]
+      (is (= "write_file" (:tool-name summary)))
+      (is (false? (:success summary)))
+      (is (= "Permission denied" (:error summary))))))
+
 ;; === format-json ===
 
 (deftest format-json-test

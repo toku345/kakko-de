@@ -22,6 +22,36 @@
     *debug-enabled*
     (debug-enabled?)))
 
+(defn extract-request-summary
+  "Extract summary data from LLM request."
+  [request]
+  {:model (:model request)
+   :message-count (count (:messages request))
+   :tools-count (count (:tools request))
+   :messages (mapv (fn [msg]
+                     {:role (:role msg)
+                      :tool_call_id (:tool_call_id msg)
+                      :content (:content msg)
+                      :tool_calls (:tool_calls msg)})
+                   (:messages request))})
+
+(defn extract-response-summary
+  "Extract summary data from LLM response."
+  [response]
+  (let [choice (-> response :choices first)
+        message (:message choice)]
+    {:finish_reason (:finish_reason choice)
+     :content (:content message)
+     :tool_calls (:tool_calls message)}))
+
+(defn extract-tool-execution-summary
+  "Extract summary data from tool execution."
+  [tool-call result]
+  {:tool-name (-> tool-call :function :name)
+   :arguments (-> tool-call :function :arguments)
+   :success (:success result)
+   :error (:error result)})
+
 (defn format-json
   "Format JSON data as pretty-printed string.
    Returns nil on failure (nil-punning pattern)."
