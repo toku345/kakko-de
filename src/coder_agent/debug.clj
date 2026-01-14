@@ -53,8 +53,14 @@
    :error (:error result)})
 
 (defn format-json
-  "Format JSON data as pretty-printed string.
-   Returns nil on failure (nil-punning pattern)."
+  "Format data as pretty-printed JSON string.
+
+   Accepts:
+     - Clojure map/vector: Directly serialized to JSON
+     - JSON string: Parsed and re-formatted with indentation
+
+   Returns:
+     Pretty-printed JSON string, or nil on parse failure (nil-punning pattern)."
   [data]
   (try
     (if (string? data)
