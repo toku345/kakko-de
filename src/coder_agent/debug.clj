@@ -22,6 +22,12 @@
     *debug-enabled*
     (debug-enabled?)))
 
+(defn- should-log?
+  "Determine if logging should occur.
+   If enabled? is explicitly provided,use it; otherwise, check debug-active?"
+  [enabled?]
+  (if (some? enabled?) enabled? (debug-active?)))
+
 (defn- truncate
   "Truncate string to max-len characters, appending '...' if truncated.
    Non-string values are converted to string first."
@@ -154,7 +160,7 @@
      :enabled? - Override debug check (default: uses debug-active?)"
   [request & {:keys [output-fn enabled?]
               :or {output-fn println}}]
-  (when (if (some? enabled?) enabled? (debug-active?))
+  (when (should-log? enabled?)
     (-> request
         extract-request-summary
         format-request-summary
@@ -167,7 +173,7 @@
      :enabled? - Override debug check (default: uses debug-active?)"
   [response & {:keys [output-fn enabled?]
                :or {output-fn println}}]
-  (when (if (some? enabled?) enabled? (debug-active?))
+  (when (should-log? enabled?)
     (-> response
         extract-response-summary
         format-response-summary
@@ -180,7 +186,7 @@
      :enabled? - Override debug check (default: uses debug-active?)"
   [tool-call result & {:keys [output-fn enabled?]
                        :or {output-fn println}}]
-  (when (if (some? enabled?) enabled? (debug-active?))
+  (when (should-log? enabled?)
     (-> (extract-tool-execution-summary tool-call result)
         format-tool-execution-summary
         output-fn)))
