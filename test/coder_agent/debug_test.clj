@@ -231,7 +231,13 @@
     (is (= "{ }" (debug/format-json {}))))
 
   (testing "empty array"
-    (is (= "[ ]" (debug/format-json [])))))
+    (is (= "[ ]" (debug/format-json []))))
+
+  (testing "empty string returns nil (nil-punning)"
+    (is (nil? (debug/format-json ""))))
+
+  (testing "blank string returns nil (nil-punning)"
+    (is (nil? (debug/format-json "   ")))))
 
 ;; === truncate (private) ===
 

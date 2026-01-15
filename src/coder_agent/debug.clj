@@ -1,6 +1,8 @@
 (ns coder-agent.debug
   "Debug logging utilities for LLM request/response visibility."
-  (:require [cheshire.core :as json]))
+  (:require
+   [cheshire.core :as json]
+   [clojure.string :as str]))
 
 (def max-context-length
   "Maximum length for truncated content display."
@@ -50,7 +52,8 @@
   [data]
   (try
     (if (string? data)
-      (json/generate-string (json/parse-string data) {:pretty true})
+      (when-not (str/blank? data)
+        (json/generate-string (json/parse-string data) {:pretty true}))
       (json/generate-string data {:pretty true}))
     (catch Exception _ nil)))
 
