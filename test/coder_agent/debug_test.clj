@@ -47,7 +47,7 @@
                                :message {:content "Hello!"}}]})]
       (is (= "stop" (:finish_reason summary)))
       (is (= "Hello!" (:content summary)))
-      (is (nil? (:tool_calls summary)))))
+      (is (empty? (:tool_calls-formatted summary)))))
 
   (testing "extracts tool_calls"
     (let [summary (debug/extract-response-summary
