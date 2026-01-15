@@ -89,12 +89,14 @@
            (:tool_calls message))}))
 
 (defn extract-tool-execution-summary
-  "Extract summary data from tool execution."
+  "Extract summary data from tool execution.
+   Arguments are JSON-formatted for display."
   [tool-call result]
-  {:tool-name (-> tool-call :function :name)
-   :arguments (-> tool-call :function :arguments)
-   :success (:success result)
-   :error (:error result)})
+  (let [args (-> tool-call :function :arguments)]
+    {:tool-name (-> tool-call :function :name)
+     :args-formatted (or (format-json args) args)
+     :success (:success result)
+     :error (:error result)}))
 
 (defn- format-message
   "Format a single message for request log output.
@@ -148,7 +150,7 @@
   [summary]
   (str "\n---------- Tool Execution ----------\n"
        "Tool: " (:tool-name summary) "\n"
-       "Args: " (or (format-json (:arguments summary)) (:arguments summary)) "\n"
+       "Args: " (:args-formatted summary) "\n"
        "Result: " (if (:success summary) "SUCCESS" "FAILURE") "\n"
        (when-not (:success summary)
          (str "Error: " (:error summary) "\n"))

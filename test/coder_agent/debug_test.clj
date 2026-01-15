@@ -62,7 +62,8 @@
                                :arguments "{\"path\":\"/tmp\"}"}}
                    {:success true})]
       (is (= "read_file" (:tool-name summary)))
-      (is (= "{\"path\":\"/tmp\"}" (:arguments summary)))
+      (is (string? (:args-formatted summary)))
+      (is (re-find #"path" (:args-formatted summary)))
       (is (true? (:success summary)))
       (is (nil? (:error summary)))))
 
@@ -72,8 +73,15 @@
                                :arguments "{}"}}
                    {:success false :error "Permission denied"})]
       (is (= "write_file" (:tool-name summary)))
+      (is (string? (:args-formatted summary)))
       (is (false? (:success summary)))
-      (is (= "Permission denied" (:error summary))))))
+      (is (= "Permission denied" (:error summary)))))
+  (testing "fall back to raw arguments when JSON parsing fails"
+    (let [summary (debug/extract-tool-execution-summary
+                   {:function {:name "test_tool"
+                               :arguments "invalid json"}}
+                   {:success true})]
+      (is (= "invalid json" (:args-formatted summary))))))
 
 (deftest format-request-summary-test
   (testing "formats basic request info"
@@ -147,7 +155,7 @@
 (deftest format-tool-execution-summary-test
   (testing "formats success case"
     (let [summary {:tool-name "read_file"
-                   :arguments "{\"path\":\"/tmp\"}"
+                   :args-formatted "{\n  \"path\" : \"/tmp\"\n}"
                    :success true
                    :error nil}
           output (debug/format-tool-execution-summary summary)]
@@ -159,7 +167,7 @@
 
   (testing "formats failure case"
     (let [summary {:tool-name "write_file"
-                   :arguments "{}"
+                   :args-formatted "{}"
                    :success false
                    :error "Permission denied"}
           output (debug/format-tool-execution-summary summary)]
