@@ -2,8 +2,8 @@
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [coder-agent.debug :as debug]
             [coder-agent.test-helper :as helper]))
-(
-use-fixtures :once helper/with-instrumentation)
+
+(use-fixtures :once helper/with-instrumentation)
 
 (deftest extract-request-summary-test
   (testing "extracts model and counts"
@@ -151,7 +151,7 @@ use-fixtures :once helper/with-instrumentation)
   (testing "formats finish_reason and content"
     (let [summary {:finish_reason "stop"
                    :content "Hello, world!"
-                   :tool_calls []}
+                   :tool_calls-formatted []}
           output (debug/format-response-summary summary)]
       (is (string? output))
       (is (re-find #"LLM RESPONSE" output))
