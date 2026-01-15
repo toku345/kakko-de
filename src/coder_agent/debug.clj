@@ -74,7 +74,13 @@
         message (:message choice)]
     {:finish_reason (:finish_reason choice)
      :content (:content message)
-     :tool_calls (:tool_calls message)}))
+     :tool_calls-formatted
+     (mapv (fn [tc]
+             (let [args (-> tc :function :arguments)]
+               {:id (:id tc)
+                :name (-> tc :function :name)
+                :args-formatted (or (format-json args) args)}))
+           (:tool_calls message))}))
 
 (defn extract-tool-execution-summary
   "Extract summary data from tool execution."
@@ -120,15 +126,14 @@
        (when-let [content (:content summary)]
          (str "\n--- Content ---\n"
               content "\n"))
-       (when (seq (:tool_calls summary))
+       (when (seq (:tool_calls-formatted summary))
          (str "\n--- Tool Calls ---\n"
-              (->> (:tool_calls summary)
+              (->> (:tool_calls-formatted summary)
                    (map (fn [tc]
-                          (let [args (-> tc :function :arguments)]
-                            (str "  ID: " (:id tc) "\n"
-                                 "  Function: " (-> tc :function :name) "\n"
-                                 "  Arguments:\n"
-                                 "    " (or (format-json args) args) "\n"))))
+                          (str "  ID: " (:id tc) "\n"
+                               "  Function: " (:name tc) "\n"
+                               "  Arguments:\n"
+                               "    " (:args-formatted tc) "\n")))
                    (apply str))))
        "=================================\n"))
 

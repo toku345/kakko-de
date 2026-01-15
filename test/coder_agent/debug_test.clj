@@ -41,12 +41,13 @@
     (let [summary (debug/extract-response-summary
                    {:choices [{:finish_reason "tool_calls"
                                :message {:tool_calls [{:id "call_123"
-                                                       :name "read_file"
-                                                       :args "{\"path\":\"tmp\"}"}]}}]})]
+                                                       :function {:name "read_file"
+                                                                  :arguments "{\"path\":\"/tmp\"}"}}]}}]})]
       (is (= "tool_calls" (:finish_reason summary)))
-      (is (= 1 (count (:tool_calls summary))))
-      (is (= "call_123" (-> summary :tool_calls first :id)))
-      (is (= "read_file" (-> summary :tool_calls first :name)))))
+      (is (= 1 (count (:tool_calls-formatted summary))))
+      (is (= "call_123" (-> summary :tool_calls-formatted first :id)))
+      (is (= "read_file" (-> summary :tool_calls-formatted first :name)))
+      (is (string? (-> summary :tool_calls-formatted first :args-formatted)))))
 
   (testing "handles empty choices"
     (let [summary (debug/extract-response-summary
@@ -126,9 +127,9 @@
   (testing "formats tool_calls"
     (let [summary {:finish_reason "tool_calls"
                    :content nil
-                   :tool_calls [{:id "call_123"
-                                 :function {:name "read_file"
-                                            :arguments "{\"path\":\"/tmp\"}"}}]}
+                   :tool_calls-formatted [{:id "call_123"
+                                           :name "read_file"
+                                           :args-formatted "{\"path\":\"/tmp\"}"}]}
           output (debug/format-response-summary summary)]
       (is (re-find #"--- Tool Calls ---" output))
       (is (re-find #"ID: call_123" output))
