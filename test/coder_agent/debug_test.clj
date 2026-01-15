@@ -2,8 +2,8 @@
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [coder-agent.debug :as debug]
             [coder-agent.test-helper :as helper]))
-
-(use-fixtures :each helper/with-instrumentation)
+(
+use-fixtures :once helper/with-instrumentation)
 
 (deftest extract-request-summary-test
   (testing "extracts model and counts"
