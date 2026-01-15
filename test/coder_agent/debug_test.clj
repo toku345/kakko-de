@@ -216,7 +216,22 @@
   (testing "Clojure map"
     (let [result (debug/format-json {:a 1})]
       (is (string? result))
-      (is (re-find #"\"a\"" result)))))
+      (is (re-find #"\"a\"" result))))
+
+  (testing "nil input returns null string"
+    (is (= "null" (debug/format-json nil))))
+
+  (testing "nested structure"
+    (let [result (debug/format-json {:outer {:inner [1 2 3]}})]
+      (is (re-find #"\"outer\"" result))
+      (is (re-find #"\"inner\"" result))
+      (is (re-find #"\[ 1, 2, 3 \]" result))))
+
+  (testing "empty object"
+    (is (= "{ }" (debug/format-json {}))))
+
+  (testing "empty array"
+    (is (= "[ ]" (debug/format-json [])))))
 
 ;; === truncate (private) ===
 
