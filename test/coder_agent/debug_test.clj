@@ -130,7 +130,22 @@
                                :tool_call_id nil
                                :tool_calls-formatted []}]}
           output (debug/format-request-summary summary)]
-      (is (re-find #"\.\.\." output)))))
+      (is (re-find #"\.\.\." output))))
+
+  (testing "formats assistant message with tool calls"
+    (let [summary {:model "test"
+                   :message-count 1
+                   :tools-count 0
+                   :messages [{:role "assistant"
+                               :content-truncated nil
+                               :tool_call_id nil
+                               :tool_calls-formatted [{:name "read_file"
+                                                       :args-formatted "{\"path\":\"/tmp\"}"}]}]}
+          output (debug/format-request-summary summary)]
+      (is (re-find #"\[assistant\]" output))
+      (is (re-find #"tool_calls:" output))
+      (is (re-find #"read_file" output))
+      (is (re-find #"args:" output)))))
 
 (deftest format-response-summary-test
   (testing "formats finish_reason and content"
