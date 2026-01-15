@@ -22,8 +22,35 @@
     *debug-enabled*
     (debug-enabled?)))
 
+(defn- truncate
+  "Truncate string to max-len characters, appending '...' if truncated.
+   Non-string values are converted to string first."
+  [s & {:keys [max-len] :or {max-len max-context-length}}]
+  (when s
+    (let [s (str s)]
+      (if (> (count s) max-len)
+        (str (subs s 0 max-len) "...")
+        s))))
+
+(defn format-json
+  "Format data as pretty-printed JSON string.
+
+   Accepts:
+     - Clojure map/vector: Directly serialized to JSON
+     - JSON string: Parsed and re-formatted with indentation
+
+   Returns:
+     Pretty-printed JSON string, or nil on parse failure (nil-punning pattern)."
+  [data]
+  (try
+    (if (string? data)
+      (json/generate-string (json/parse-string data) {:pretty true})
+      (json/generate-string data {:pretty true}))
+    (catch Exception _ nil)))
+
 (defn extract-request-summary
-  "Extract summary data from LLM request."
+  "Extract summary data from LLM request.
+   Content is truncated and tool_calls arguments are JSON-formatted."
   [request]
   {:model (:model request)
    :message-count (count (:messages request))
@@ -31,8 +58,13 @@
    :messages (mapv (fn [msg]
                      {:role (:role msg)
                       :tool_call_id (:tool_call_id msg)
-                      :content (:content msg)
-                      :tool_calls (:tool_calls msg)})
+                      :content-truncated (truncate (:content msg))
+                      :tool_calls-formatted
+                      (mapv (fn [tc]
+                              (let [args (-> tc :function :arguments)]
+                                {:name (-> tc :function :name)
+                                 :args-formatted (or (format-json args) args)}))
+                            (:tool_calls msg))})
                    (:messages request))})
 
 (defn extract-response-summary
@@ -52,47 +84,21 @@
    :success (:success result)
    :error (:error result)})
 
-(defn format-json
-  "Format data as pretty-printed JSON string.
-
-   Accepts:
-     - Clojure map/vector: Directly serialized to JSON
-     - JSON string: Parsed and re-formatted with indentation
-
-   Returns:
-     Pretty-printed JSON string, or nil on parse failure (nil-punning pattern)."
-  [data]
-  (try
-    (if (string? data)
-      (json/generate-string (json/parse-string data) {:pretty true})
-      (json/generate-string data {:pretty true}))
-    (catch Exception _ nil)))
-
-(defn- truncate
-  "Truncate string to max-len characters, appending '...' if truncated.
-   Non-string values are converted to string first."
-  [s & {:keys [max-len] :or {max-len max-context-length}}]
-  (when s
-    (let [s (str s)]
-      (if (> (count s) max-len)
-        (str (subs s 0 max-len) "...")
-        s))))
-
 (defn- format-message
-  "Format a single message for request log output."
+  "Format a single message for request log output.
+   Expects pre-processed summary with :content-truncated and :tool_calls-formatted."
   [msg]
   (str "  [" (:role msg) "]\n"
        (when-let [tool-call-id (:tool_call_id msg)]
          (str "    tool_call_id:" tool-call-id "\n"))
-       (when-let [content (:content msg)]
-         (str "    " (truncate content) "\n"))
-       (when-let [tool-calls (:tool_calls msg)]
+       (when-let [content (:content-truncated msg)]
+         (str "    " content "\n"))
+       (when (seq (:tool_calls-formatted msg))
          (str "    tool_calls:\n"
-              (->> tool-calls
+              (->> (:tool_calls-formatted msg)
                    (map (fn [tc]
-                          (let [args (-> tc :function :arguments)]
-                            (str "      - " (-> tc :function :name) "\n"
-                                 "        args: " (or (format-json args) args) "\n"))))
+                          (str "      - " (:name tc) "\n"
+                               "        args: " (:args-formatted tc) "\n")))
                    (apply str))))))
 (defn format-request-summary
   "Format request summary as log string."

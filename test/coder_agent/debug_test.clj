@@ -15,16 +15,18 @@
       (is (= 1 (:message-count summary)))
       (is (= 1 (:tools-count summary)))))
 
-  (testing "extracts message details"
+  (testing "extracts message details with truncated content"
     (let [summary (debug/extract-request-summary
                    {:model "test"
                     :messages [{:role "assistant"
                                 :content "hi"
-                                :tool_calls [{:id "1" :function {:name "test"}}]}]
+                                :tool_calls [{:id "1" :function {:name "test" :arguments "{\"arg\":\"value\"}"}}]}]
                     :tools []})]
       (is (= 1 (count (:messages summary))))
       (is (= "assistant" (-> summary :messages first :role)))
-      (is (= "hi" (-> summary :messages first :content))))))
+      (is (= "hi" (-> summary :messages first :content-truncated)))
+      (is (= "test" (-> summary :messages first :tool_calls-formatted first :name)))
+      (is (string? (-> summary :messages first :tool_calls-formatted first :args-formatted))))))
 
 (deftest extract-response-summary-test
   (testing "extracts finish_reason and content"
@@ -90,25 +92,24 @@
                    :message-count 1
                    :tools-count 0
                    :messages [{:role "user"
-                               :content "hello world"
+                               :content-truncated "hello world"
                                :tool_call_id nil
-                               :tool_calls nil}]}
+                               :tool_calls-formatted []}]}
           output (debug/format-request-summary summary)]
       (is (re-find #"\[user\]" output))
       (is (re-find #"hello world" output))))
 
-  (testing "truncates long context"
-    (let [long-content (apply str (repeat 201 "x"))
+  (testing "displays pre-truncated context"
+    (let [truncated-content (str (apply str (repeat 200 "x")) "...")
           summary {:model "test"
                    :message-count 1
                    :tools-count 0
                    :messages [{:role "user"
-                               :content long-content
+                               :content-truncated truncated-content
                                :tool_call_id nil
-                               :tool_calls nil}]}
+                               :tool_calls-formatted []}]}
           output (debug/format-request-summary summary)]
-      (is (re-find #"\.\.\." output))
-      (is (not (re-find (re-pattern long-content) output))))))
+      (is (re-find #"\.\.\." output)))))
 
 (deftest format-response-summary-test
   (testing "formats finish_reason and content"
