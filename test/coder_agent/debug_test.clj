@@ -26,7 +26,19 @@
       (is (= "assistant" (-> summary :messages first :role)))
       (is (= "hi" (-> summary :messages first :content-truncated)))
       (is (= "test" (-> summary :messages first :tool_calls-formatted first :name)))
-      (is (string? (-> summary :messages first :tool_calls-formatted first :args-formatted))))))
+      (is (string? (-> summary :messages first :tool_calls-formatted first :args-formatted)))))
+
+  (testing "extracts tool result message with tool_call_id"
+    (let [summary (debug/extract-request-summary
+                   {:model "test"
+                    :messages [{:role "tool"
+                                :tool_call_id "call_abc123"
+                                :content "{\"result\": \"success\"}"}]
+                    :tools []})]
+      (is (= 1 (count (:messages summary))))
+      (is (= "tool" (-> summary :messages first :role)))
+      (is (= "call_abc123" (-> summary :messages first :tool_call_id)))
+      (is (string? (-> summary :messages first :content-truncated))))))
 
 (deftest extract-response-summary-test
   (testing "extracts finish_reason and content"
