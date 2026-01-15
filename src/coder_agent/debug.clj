@@ -24,7 +24,7 @@
 
 (defn- should-log?
   "Determine if logging should occur.
-   If enabled? is explicitly provided,use it; otherwise, check debug-active?"
+   If enabled? is explicitly provided, use it; otherwise, check debug-active?"
   [enabled?]
   (if (some? enabled?) enabled? (debug-active?)))
 
@@ -46,7 +46,7 @@
      - JSON string: Parsed and re-formatted with indentation
 
    Returns:
-     Pretty-printed JSON string, or nil on parse failure (nil-punning pattern)."
+     Pretty-printed JSON string, or nil on failure (nil-punning pattern)."
   [data]
   (try
     (if (string? data)
@@ -114,6 +114,7 @@
                           (str "      - " (:name tc) "\n"
                                "        args: " (:args-formatted tc) "\n")))
                    (apply str))))))
+
 (defn format-request-summary
   "Format request summary as log string."
   [summary]
@@ -155,6 +156,7 @@
        (when-not (:success summary)
          (str "Error: " (:error summary) "\n"))
        "------------------------------------\n"))
+
 (defn log-request
   "Log LLM request details when debug mode is enabled.
    Options:
