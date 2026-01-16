@@ -41,19 +41,18 @@
           message (-> response :choices first :message)
           tool-calls (:tool_calls message)]
       (if (seq tool-calls)
-        (do
-          (let [tools-results (mapv (fn [tc]
-                                      (let [result (execute-tool-fn tc)]
-                                        (debug/log-tool-execution tc result)
-                                        (output/print-tool-execution tc result)
-                                        {:role "tool"
-                                         :tool_call_id (:id tc)
-                                         :content (json/generate-string result)}))
-                                    tool-calls)
-                updated (-> messages
-                            (conj message)
-                            (into tools-results))]
-            (recur updated (inc iteration))))
+        (let [tools-results (mapv (fn [tc]
+                                    (let [result (execute-tool-fn tc)]
+                                      (debug/log-tool-execution tc result)
+                                      (output/print-tool-execution tc result)
+                                      {:role "tool"
+                                       :tool_call_id (:id tc)
+                                       :content (json/generate-string result)}))
+                                  tool-calls)
+              updated (-> messages
+                          (conj message)
+                          (into tools-results))]
+          (recur updated (inc iteration)))
         (:content message)))))
 
 (defn -main [& args]
