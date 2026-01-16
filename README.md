@@ -18,6 +18,26 @@ direnv allow
 clj -M:run "Your question here"
 ```
 
+#### Example Output
+
+```bash
+$ clj -M:run "Check the files under the test/ directory in this project and summarize their contents into test/README.md"
+🤖 Thinking with tools..
+🔧 list_dir: test/ ✓
+🔧 list_dir: test/fixtures/ ✓
+🔧 list_dir: test/coder_agent/ ✓
+🔧 read_file: test/fixtures/sample.txt ✓
+🔧 read_file: test/fixtures/another_sample.txt ✓
+🔧 read_file: test/coder_agent/core_test.clj ✓
+🔧 read_file: test/coder_agent/test_helper.clj ✓
+🔧 read_file: test/coder_agent/integration_test.clj ✓
+🔧 read_file: test/coder_agent/debug_test.clj ✓
+🔧 read_file: test/coder_agent/output_test.clj ✓
+🔧 read_file: test/coder_agent/tools_test.clj ✓
+🔧 write_file: test/README.md ✓
+Answer: I've analyzed the files in the `test/` directory and created a summary in `test/README.md`.
+```
+
 ### Environment Variables
 
 | Variable | Description | Default |

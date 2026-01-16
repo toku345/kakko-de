@@ -3,7 +3,8 @@
             [coder-agent.protocols :refer [chat-completion]]
             [coder-agent.llm :as llm]
             [coder-agent.tools :as tools]
-            [coder-agent.debug :as debug]))
+            [coder-agent.debug :as debug]
+            [coder-agent.output :as output]))
 
 (def default-model
   (or (System/getenv "OPENAI_MODEL")
@@ -30,7 +31,7 @@
   (println "🤖 Thinking with tools..")
   (loop [messages [{:role "user" :content user-input}]
          iteration 0]
-    (when (>= iteration 10)
+    (when (>= iteration 30)
       (throw (ex-info "Max tool iterations exceeded." {:iterations iteration
                                                        :messages messages})))
     (let [request {:model model :messages messages :tools tools}
@@ -40,19 +41,18 @@
           message (-> response :choices first :message)
           tool-calls (:tool_calls message)]
       (if (seq tool-calls)
-        (do
-          (println "🔧 Executing tools..")
-          (let [tools-results (mapv (fn [tc]
-                                      (let [result (execute-tool-fn tc)]
-                                        (debug/log-tool-execution tc result)
-                                        {:role "tool"
-                                         :tool_call_id (:id tc)
-                                         :content (json/generate-string result)}))
-                                    tool-calls)
-                updated (-> messages
-                            (conj message)
-                            (into tools-results))]
-            (recur updated (inc iteration))))
+        (let [tools-results (mapv (fn [tc]
+                                    (let [result (execute-tool-fn tc)]
+                                      (debug/log-tool-execution tc result)
+                                      (output/print-tool-execution tc result)
+                                      {:role "tool"
+                                       :tool_call_id (:id tc)
+                                       :content (json/generate-string result)}))
+                                  tool-calls)
+              updated (-> messages
+                          (conj message)
+                          (into tools-results))]
+          (recur updated (inc iteration)))
         (:content message)))))
 
 (defn -main [& args]
