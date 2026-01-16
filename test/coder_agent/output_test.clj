@@ -1,6 +1,9 @@
 (ns coder-agent.output-test
-  (:require [clojure.test :refer [deftest is testing]]
-            [coder-agent.output :as output]))
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
+            [coder-agent.output :as output]
+            [coder-agent.test-helper :as helper]))
+
+(use-fixtures :once helper/with-instrumentation)
 
 (deftest extract-target-path-test
   (testing "read_file returns file_path"
