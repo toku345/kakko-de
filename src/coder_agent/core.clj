@@ -20,6 +20,11 @@
   "Default LLM client created from environment variables."
   (delay (llm/make-openai-client)))
 
+(def default-output-handlers
+  "Default output handlers for chat functions."
+  {:on-thinking (fn [] (println "🤖 Thinking..."))
+   :on-tool-execution output/print-tool-execution})
+
 (defn format-tool-result-message
   "Convert tool execution result to OpenAI message format."
   [tool-call result]
@@ -50,10 +55,11 @@
    Returns:
      {:status :continue :messages [...]} - continue with updated messages
      {:status :complete :content ...}    - final content"
-  [client messages & {:keys [model tools execute-tool-fn]
+  [client messages & {:keys [model tools execute-tool-fn on-tool-execution]
                       :or {model default-model
                            tools available-tools
-                           execute-tool-fn tools/execute-tool}}]
+                           execute-tool-fn tools/execute-tool
+                           on-tool-execution (:on-tool-execution default-output-handlers)}}]
   (let [request {:model model :messages messages :tools tools}
         _ (debug/log-request request)
         response (chat-completion client request)
@@ -64,7 +70,8 @@
                            (fn [tc]
                              (let [result (execute-tool-fn tc)]
                                (debug/log-tool-execution tc result)
-                               (output/print-tool-execution tc result)
+                               (when on-tool-execution
+                                 (on-tool-execution tc result))
                                (format-tool-result-message tc result)))
                            (:tool_calls message))]
         {:status :continue
@@ -77,18 +84,23 @@
    Orchestrates the chat loop with injected dependencies.
 
    Options:
-     :execute-tool-fn - Function to execute tools (default: tools/execute-tool)
-     :tools           - Available tools (default: available-tools)
-     :model           - Model name (default: default-model)
-     :max-iterations  - Max tool loop iterations (default: 30)
-     :system-prompt   - System prompt (default: default-system-prompt)"
-  [client user-input & {:keys [execute-tool-fn tools model max-iterations system-prompt]
+     :execute-tool-fn   - Function to execute tools (default: tools/execute-tool)
+     :tools             - Available tools (default: available-tools)
+     :model             - Model name (default: default-model)
+     :max-iterations    - Max tool loop iterations (default: 30)
+     :system-prompt     - System prompt (default: default-system-prompt)
+     :on-thinking       - Callback when thinking starts (default: prints emoji)
+     :on-tool-execution - Callback (fn [tool-call result]) after tool execution (default: print-tool-execution)"
+  [client user-input & {:keys [execute-tool-fn tools model max-iterations system-prompt
+                               on-thinking on-tool-execution]
                         :or {execute-tool-fn tools/execute-tool
                              tools available-tools
                              model default-model
                              max-iterations 30
-                             system-prompt default-system-prompt}}]
-  (println "🤖 Thinking with tools..")
+                             system-prompt default-system-prompt
+                             on-thinking (:on-thinking default-output-handlers)
+                             on-tool-execution (:on-tool-execution default-output-handlers)}}]
+  (when on-thinking (on-thinking))
   (loop [messages (build-initial-messages system-prompt user-input)
          iteration 0]
     (when (>= iteration max-iterations)
@@ -96,7 +108,8 @@
     (let [result (chat-step client messages
                             :model model
                             :tools tools
-                            :execute-tool-fn execute-tool-fn)]
+                            :execute-tool-fn execute-tool-fn
+                            :on-tool-execution on-tool-execution)]
       (case (:status result)
         :continue (recur (:messages result) (inc iteration))
         :complete (:content result)))))
