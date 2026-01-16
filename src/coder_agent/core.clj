@@ -12,8 +12,8 @@
 
 (def available-tools [tools/write-tool tools/read-tool tools/list-dir-tool])
 
-(def system-prompt
-  "System prompt for the AI assistant."
+(def default-system-prompt
+  "Default system prompt for the AI assistant."
   "You are a helpful coding assistant. Use the provided tools to assist with coding tasks.")
 
 (def default-client
@@ -80,12 +80,14 @@
      :execute-tool-fn - Function to execute tools (default: tools/execute-tool)
      :tools           - Available tools (default: available-tools)
      :model           - Model name (default: default-model)
-     :max-iterations  - Max tool loop iterations (default: 30)"
-  [client user-input & {:keys [execute-tool-fn tools model max-iterations]
+     :max-iterations  - Max tool loop iterations (default: 30)
+     :system-prompt   - System prompt (default: default-system-prompt)"
+  [client user-input & {:keys [execute-tool-fn tools model max-iterations system-prompt]
                         :or {execute-tool-fn tools/execute-tool
                              tools available-tools
                              model default-model
-                             max-iterations 30}}]
+                             max-iterations 30
+                             system-prompt default-system-prompt}}]
   (println "🤖 Thinking with tools..")
   (loop [messages (build-initial-messages system-prompt user-input)
          iteration 0]
