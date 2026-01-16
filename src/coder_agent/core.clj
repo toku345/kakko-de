@@ -20,44 +20,84 @@
   "Default LLM client created from environment variables."
   (delay (llm/make-openai-client)))
 
+(defn format-tool-result-message
+  "Convert tool execution result to OpenAI message format."
+  [tool-call result]
+  {:role "tool"
+   :tool_call_id (:id tool-call)
+   :content (json/generate-string result)})
+
+(defn build-initial-messages
+  "Build initial message list from system prompt and user input."
+  [system-prompt user-input]
+  [{:role "system" :content system-prompt}
+   {:role "user" :content user-input}])
+
+(defn append-turn
+  "Append assistant message and tool results to message history."
+  [messages assistant-message tool-results]
+  (-> messages
+      (conj assistant-message)
+      (into tool-results)))
+
+(defn has-tool-calls?
+  "Check if LLM response message contains tool calls."
+  [message]
+  (seq (:tool_calls message)))
+
+(defn chat-step
+  "Execute one LLM round-trip. Decoupled from loop control.
+   Returns:
+     {:status :continue :messages [...]} - continue with updated messages
+     {:status :complete :content ...}    - final content"
+  [client messages & {:keys [model tools execute-tool-fn]
+                      :or {model default-model
+                           tools available-tools
+                           execute-tool-fn tools/execute-tool}}]
+  (let [request {:model model :messages messages :tools tools}
+        _ (debug/log-request request)
+        response (chat-completion client request)
+        _ (debug/log-response response)
+        message (-> response :choices first :message)]
+    (if (has-tool-calls? message)
+      (let [tools-results (mapv
+                           (fn [tc]
+                             (let [result (execute-tool-fn tc)]
+                               (debug/log-tool-execution tc result)
+                               (output/print-tool-execution tc result)
+                               (format-tool-result-message tc result)))
+                           (:tool_calls message))]
+        {:status :continue
+         :messages (append-turn messages message tools-results)})
+      {:status :complete
+       :content (:content message)})))
+
 (defn chat
   "Send a message to the LLM and return the response content.
-   client: LLMClient instance
-   user-input: User's input string
+   Orchestrates the chat loop with injected dependencies.
+
    Options:
      :execute-tool-fn - Function to execute tools (default: tools/execute-tool)
-     :tools - Available tools (default: available-tools)
-     :model - Model name (default: default-model)"
-  [client user-input & {:keys [execute-tool-fn tools model]
+     :tools           - Available tools (default: available-tools)
+     :model           - Model name (default: default-model)
+     :max-iterations  - Max tool loop iterations (default: 30)"
+  [client user-input & {:keys [execute-tool-fn tools model max-iterations]
                         :or {execute-tool-fn tools/execute-tool
                              tools available-tools
-                             model default-model}}]
+                             model default-model
+                             max-iterations 30}}]
   (println "🤖 Thinking with tools..")
-  (loop [messages [{:role "system" :content system-prompt}
-                   {:role "user" :content user-input}]
+  (loop [messages (build-initial-messages system-prompt user-input)
          iteration 0]
-    (when (>= iteration 30)
+    (when (>= iteration max-iterations)
       (throw (ex-info "Max tool iterations exceeded." {:iterations iteration})))
-    (let [request {:model model :messages messages :tools tools}
-          _ (debug/log-request request)
-          response (chat-completion client request)
-          _ (debug/log-response response)
-          message (-> response :choices first :message)
-          tool-calls (:tool_calls message)]
-      (if (seq tool-calls)
-        (let [tools-results (mapv (fn [tc]
-                                    (let [result (execute-tool-fn tc)]
-                                      (debug/log-tool-execution tc result)
-                                      (output/print-tool-execution tc result)
-                                      {:role "tool"
-                                       :tool_call_id (:id tc)
-                                       :content (json/generate-string result)}))
-                                  tool-calls)
-              updated (-> messages
-                          (conj message)
-                          (into tools-results))]
-          (recur updated (inc iteration)))
-        (:content message)))))
+    (let [result (chat-step client messages
+                            :model model
+                            :tools tools
+                            :execute-tool-fn execute-tool-fn)]
+      (case (:status result)
+        :continue (recur (:messages result) (inc iteration))
+        :complete (:content result)))))
 
 (defn -main [& args]
   (let [input (first args)]
