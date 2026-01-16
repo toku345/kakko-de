@@ -37,8 +37,7 @@
                    {:role "user" :content user-input}]
          iteration 0]
     (when (>= iteration 30)
-      (throw (ex-info "Max tool iterations exceeded." {:iterations iteration
-                                                       :messages messages})))
+      (throw (ex-info "Max tool iterations exceeded." {:iterations iteration})))
     (let [request {:model model :messages messages :tools tools}
           _ (debug/log-request request)
           response (chat-completion client request)

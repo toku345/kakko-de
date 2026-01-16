@@ -24,6 +24,8 @@
       (core/chat mock-client "What is Clojure?")
       (is (= "system"
              (-> @captured-request :messages first :role)))
+      (is (= core/system-prompt
+             (-> @captured-request :messages first :content)))
       (is (= "What is Clojure?"
              (-> @captured-request :messages second :content)))))
 
