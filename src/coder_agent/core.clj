@@ -12,6 +12,10 @@
 
 (def available-tools [tools/write-tool tools/read-tool tools/list-dir-tool])
 
+(def system-prompt
+  "System prompt for the AI assistant."
+  "You are a helpful coding assistant. Use the provided tools to assist with coding tasks.")
+
 (def default-client
   "Default LLM client created from environment variables."
   (delay (llm/make-openai-client)))
@@ -29,7 +33,8 @@
                              tools available-tools
                              model default-model}}]
   (println "🤖 Thinking with tools..")
-  (loop [messages [{:role "user" :content user-input}]
+  (loop [messages [{:role "system" :content system-prompt}
+                   {:role "user" :content user-input}]
          iteration 0]
     (when (>= iteration 30)
       (throw (ex-info "Max tool iterations exceeded." {:iterations iteration

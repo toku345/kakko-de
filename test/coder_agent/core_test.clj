@@ -22,11 +22,10 @@
                          (reset! captured-request request)
                          {:choices [{:message {:content "OK"}}]}))]
       (core/chat mock-client "What is Clojure?")
+      (is (= "system"
+             (-> @captured-request :messages first :role)))
       (is (= "What is Clojure?"
-             (-> @captured-request
-                 :messages
-                 first
-                 :content)))))
+             (-> @captured-request :messages second :content)))))
 
   (testing "chat propagates LLM client exceptions"
     (let [error-client (llm/make-mock-client
