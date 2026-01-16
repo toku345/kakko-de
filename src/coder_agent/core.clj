@@ -31,7 +31,7 @@
   (println "🤖 Thinking with tools..")
   (loop [messages [{:role "user" :content user-input}]
          iteration 0]
-    (when (>= iteration 10)
+    (when (>= iteration 30)
       (throw (ex-info "Max tool iterations exceeded." {:iterations iteration
                                                        :messages messages})))
     (let [request {:model model :messages messages :tools tools}
