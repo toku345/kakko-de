@@ -65,3 +65,52 @@
       (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Max tool iterations exceeded"
                             (core/chat mock-client "Loop forever"
                                        :execute-tool-fn mock-execute))))))
+
+(deftest chat-step-test
+  (testing "returns :complete when no tool calls"
+    (let [mock-client (llm/make-mock-client
+                       (fn [_request]
+                         {:choices [{:message {:content "Hello"}}]}))
+          result (core/chat-step mock-client
+                                 [{:role "user" :content "Hi"}]
+                                 :on-tool-execution nil)]
+      (is (= :complete (:status result)))
+      (is (= "Hello" (:content result)))))
+
+  (testing "returns :continue when tool calls present"
+    (let [mock-client (llm/make-mock-client
+                       (fn [_request]
+                         {:choices [{:message {:tool_calls [{:id "1"
+                                                             :function {:name "read_file"
+                                                                        :arguments "{}"}}]}}]}))
+          result (core/chat-step mock-client
+                                 [{:role "user" :content "Write"}]
+                                 :execute-tool-fn (constantly {:success true})
+                                 :on-tool-execution nil)]
+      (is (= :continue (:status result)))
+      (is (vector? (:messages result)))))
+
+  (testing "handles nil on-tool-execution without error"
+    (let [mock-client (llm/make-mock-client
+                       (fn [_request]
+                         {:choices [{:message {:tool_calls [{:id "1"
+                                                             :function {:name "write_file"
+                                                                        :arguments "{}"}}]}}]}))
+          result (core/chat-step mock-client
+                                 [{:role "user" :content "Write"}]
+                                 :execute-tool-fn (constantly {:success true})
+                                 :on-tool-execution nil)]
+      (is (some? result))))
+
+  (testing "survives callback exception via safe-invoke"
+    (let [mock-client (llm/make-mock-client
+                       (fn [_request]
+                         {:choices [{:message {:tool_calls [{:id "1"
+                                                             :function {:name "write_file"
+                                                                        :arguments "{}"}}]}}]}))
+          faulty-callback (fn [_ _] (throw (Exception. "Callback error")))
+          result (core/chat-step mock-client
+                                 [{:role "user" :content "Write"}]
+                                 :execute-tool-fn (constantly {:success true})
+                                 :on-tool-execution faulty-callback)]
+      (is (some? result)))))
