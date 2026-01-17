@@ -25,6 +25,15 @@
   {:on-thinking (fn [] (println "🤖 Thinking..."))
    :on-tool-execution output/print-tool-execution})
 
+(defn- safe-invoke
+  "Invoke callback safely, logging errors but not propagating them."
+  [callback & args]
+  (when callback
+    (try
+      (apply callback args)
+      (catch Exception e
+        (println (str "Warning: callback failed - " (.getMessage e)))))))
+
 (defn format-tool-result-message
   "Convert tool execution result to OpenAI message format."
   [tool-call result]
@@ -70,8 +79,7 @@
                            (fn [tc]
                              (let [result (execute-tool-fn tc)]
                                (debug/log-tool-execution tc result)
-                               (when on-tool-execution
-                                 (on-tool-execution tc result))
+                               (safe-invoke on-tool-execution tc result)
                                (format-tool-result-message tc result)))
                            (:tool_calls message))]
         {:status :continue
@@ -100,7 +108,7 @@
                              system-prompt default-system-prompt
                              on-thinking (:on-thinking default-output-handlers)
                              on-tool-execution (:on-tool-execution default-output-handlers)}}]
-  (when on-thinking (on-thinking))
+  (safe-invoke on-thinking)
   (loop [messages (build-initial-messages system-prompt user-input)
          iteration 0]
     (when (>= iteration max-iterations)
