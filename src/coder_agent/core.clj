@@ -13,7 +13,6 @@
 (def available-tools [tools/write-tool tools/read-tool tools/list-dir-tool])
 
 (def default-system-prompt
-  "Default system prompt for the AI assistant."
   "You are a helpful coding assistant. Use the provided tools to assist with coding tasks.")
 
 (def default-client
@@ -97,8 +96,8 @@
      :model             - Model name (default: default-model)
      :max-iterations    - Max tool loop iterations (default: 30)
      :system-prompt     - System prompt (default: default-system-prompt)
-     :on-thinking       - Callback when thinking starts (default: prints emoji)
-     :on-tool-execution - Callback (fn [tool-call result]) after tool execution (default: print-tool-execution)"
+     :on-thinking       - Callback when thinking starts. Pass nil to disable. (default: prints emoji)
+     :on-tool-execution - Callback (fn [tool-call result]) after tool execution. Pass nil to disable. (default: print-tool-execution)"
   [client user-input & {:keys [execute-tool-fn tools model max-iterations system-prompt
                                on-thinking on-tool-execution]
                         :or {execute-tool-fn tools/execute-tool
