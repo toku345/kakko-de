@@ -25,7 +25,7 @@
    :on-tool-execution output/print-tool-execution})
 
 (defn- safe-invoke
-  "Invoke callback safely, logging errors but not propagating them."
+  "Invoke callback safely, printing warnings on error but not propagating them."
   [callback & args]
   (when callback
     (try
@@ -34,27 +34,23 @@
         (println (str "Warning: callback failed - " (.getMessage e)))))))
 
 (defn format-tool-result-message
-  "Convert tool execution result to OpenAI message format."
   [tool-call result]
   {:role "tool"
    :tool_call_id (:id tool-call)
    :content (json/generate-string result)})
 
 (defn build-initial-messages
-  "Build initial message list from system prompt and user input."
   [system-prompt user-input]
   [{:role "system" :content system-prompt}
    {:role "user" :content user-input}])
 
 (defn append-turn
-  "Append assistant message and tool results to message history."
   [messages assistant-message tool-results]
   (-> messages
       (conj assistant-message)
       (into tool-results)))
 
 (defn has-tool-calls?
-  "Check if LLM response message contains tool calls."
   [message]
   (seq (:tool_calls message)))
 
@@ -62,7 +58,7 @@
   "Execute one LLM round-trip. Decoupled from loop control.
    Returns:
      {:status :continue :messages [...]} - continue with updated messages
-     {:status :complete :content ...}    - final content"
+     {:status :complete :content ...}    - final content (may be nil)"
   [client messages & {:keys [model tools execute-tool-fn on-tool-execution]
                       :or {model default-model
                            tools available-tools
