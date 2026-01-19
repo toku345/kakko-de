@@ -3,7 +3,9 @@
   (:require
    [clojure.string :as string]
    [coder-agent.protocols :refer [LLMClient]]
-   [wkok.openai-clojure.api :as openai]))
+   [wkok.openai-clojure.api :as openai]
+   [clj-http.lite.client :as http]
+   [cheshire.core :as json]))
 
 (defrecord OpenAIClient [api-key api-endpoint]
   LLMClient
@@ -34,3 +36,23 @@
   "Create a MockLLMClient with the given response function."
   [response-fn]
   (->MockLLMClient response-fn))
+
+(defrecord VLLMClient [api-key api-endpoint]
+  LLMClient
+  (chat-completion [_ request]
+    (let [url (str api-endpoint "/chat/completions")
+          response (http/post url
+                              {:headers {"Authorization" (str "Bearer " api-key)
+                                         "Content-Type" "application/json"}
+                               :body (json/generate-string request)
+                               :throw-exceptions true})]
+      (json/parse-string (:body response) true))))
+
+(defn make-vllm-client
+  "Create a VLLMClient for vLLM endpoints
+   api-key defaults to \"sk-dummy\" for local vLLM."
+  [api-endpoint & {:keys [api-key] :or {api-key "sk-dummy"}}]
+  (when (or (nil? api-endpoint) (string/blank? api-endpoint))
+    (throw (ex-info "API endpoint is required for VLLMClient"
+                    {:hint "Provide endpoint like http://localhost:8000/v1"})))
+  (->VLLMClient api-key api-endpoint))

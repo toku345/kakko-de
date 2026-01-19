@@ -134,3 +134,16 @@
         :model "Qwen/Qwen3-Coder-30B-A3B-Instruct")
   (chat client "Read the number from test_output_count.txt and increment it by 1, then write it back."
         :model "Qwen/Qwen3-Coder-30B-A3B-Instruct"))
+
+(comment
+  (def vllm-client (llm/make-vllm-client "http://localhost:8000/v1"))
+
+  (def response (chat-completion vllm-client
+                                 {:model "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+                                  :messages [{:role "system"
+                                              :content "You are a helpful coding assistant."}
+                                             {:role "user"
+                                              :content "What is Clojure?"}]
+                                  :echo true}))
+
+  (:prompt_logprobs response))
