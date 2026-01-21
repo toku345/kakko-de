@@ -124,9 +124,10 @@
         :complete (:content result)))))
 
 (defn -main [& args]
-  (let [input (first args)]
+  (let [input (first args)
+        echo? (= "true" (System/getenv "ECHO"))]
     (if input
-      (println "Answer:" (chat @default-client input :echo true))
+      (println "Answer:" (chat @default-client input :echo echo?))
       (println "Please input your question as the first argument."))))
 
 (comment
