@@ -59,15 +59,19 @@
    Returns:
      {:status :continue :messages [...]} - continue with updated messages
      {:status :complete :content ...}    - final content (may be nil)"
-  [client messages & {:keys [model tools execute-tool-fn on-tool-execution]
+  [client messages & {:keys [model tools execute-tool-fn on-tool-execution echo]
                       :or {model default-model
                            tools available-tools
                            execute-tool-fn tools/execute-tool
-                           on-tool-execution (:on-tool-execution default-output-handlers)}}]
-  (let [request {:model model :messages messages :tools tools}
+                           on-tool-execution (:on-tool-execution default-output-handlers)
+                           echo false}}]
+  (let [request (cond-> {:model model :messages messages :tools tools}
+                  echo (assoc :echo true))
         _ (debug/log-request request)
         response (chat-completion client request)
         _ (debug/log-response response)
+        _ (when echo
+            (debug/log-internal-prompt (:prompt_logprobs response)))
         message (-> response :choices first :message)]
     (if (has-tool-calls? message)
       (let [tools-results (mapv
@@ -95,14 +99,15 @@
      :on-thinking       - Callback when thinking starts. Pass nil to disable. (default: prints emoji)
      :on-tool-execution - Callback (fn [tool-call result]) after tool execution. Pass nil to disable. (default: print-tool-execution)"
   [client user-input & {:keys [execute-tool-fn tools model max-iterations system-prompt
-                               on-thinking on-tool-execution]
+                               on-thinking on-tool-execution echo]
                         :or {execute-tool-fn tools/execute-tool
                              tools available-tools
                              model default-model
                              max-iterations 30
                              system-prompt default-system-prompt
                              on-thinking (:on-thinking default-output-handlers)
-                             on-tool-execution (:on-tool-execution default-output-handlers)}}]
+                             on-tool-execution (:on-tool-execution default-output-handlers)
+                             echo false}}]
   (safe-invoke on-thinking)
   (loop [messages (build-initial-messages system-prompt user-input)
          iteration 0]
@@ -112,7 +117,8 @@
                             :model model
                             :tools tools
                             :execute-tool-fn execute-tool-fn
-                            :on-tool-execution on-tool-execution)]
+                            :on-tool-execution on-tool-execution
+                            :echo echo)]
       (case (:status result)
         :continue (recur (:messages result) (inc iteration))
         :complete (:content result)))))
