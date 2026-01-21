@@ -17,7 +17,7 @@
 
 (def default-client
   "Default LLM client created from environment variables."
-  (delay (llm/make-openai-client)))
+  (delay (llm/make-vllm-client (System/getenv "OPENAI_API_ENDPOINT"))))
 
 (def default-output-handlers
   "Default output handlers for chat functions."
@@ -126,7 +126,7 @@
 (defn -main [& args]
   (let [input (first args)]
     (if input
-      (println "Answer:" (chat @default-client input))
+      (println "Answer:" (chat @default-client input :echo true))
       (println "Please input your question as the first argument."))))
 
 (comment
