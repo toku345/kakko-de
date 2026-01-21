@@ -152,4 +152,4 @@
                                               :content "What is Clojure?"}]
                                   :echo true}))
 
-  (:prompt_logprobs response))
+  (debug/log-internal-prompt (:prompt_logprobs response)))
