@@ -18,7 +18,7 @@ clj
 # Run unit tests (default, excludes integration)
 clj -X:test
 
-# Run integration tests only (requires OPENAI_API_KEY)
+# Run integration tests only (requires OPENAI_API_ENDPOINT)
 clj -X:test :excludes '[]' :includes '[:integration]'
 
 # Run all tests
@@ -115,16 +115,16 @@ clj -M:fmt/fix     # Auto-fix formatting
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | API key | (required) |
-| `OPENAI_API_ENDPOINT` | API endpoint | OpenAI default |
+| `OPENAI_API_ENDPOINT` | API endpoint | (required) |
+| `OPENAI_API_KEY` | API key | `sk-dummy` |
 | `OPENAI_MODEL` | Model name | `gpt-5-mini` |
 | `DEBUG` | Enable debug logging | `false` |
+| `ECHO` | Show internal prompt (vLLM echo mode) | `false` |
 
 Setup: `cp .envrc.example .envrc && direnv allow`
 
 ## Important Notes
 
-- openai-clojure uses `:api-endpoint` (not `:base-url`) for custom endpoints
 - `tool-registry` keys must match `:name` in tool definitions exactly
 - Tool names use underscores (OpenAI convention), Clojure functions use hyphens
 
