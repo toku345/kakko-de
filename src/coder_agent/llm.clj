@@ -3,28 +3,8 @@
   (:require
    [clojure.string :as string]
    [coder-agent.protocols :refer [LLMClient]]
-   [wkok.openai-clojure.api :as openai]
    [clj-http.lite.client :as http]
    [cheshire.core :as json]))
-
-(defrecord OpenAIClient [api-key api-endpoint]
-  LLMClient
-  (chat-completion [_ request]
-    (openai/create-chat-completion
-     request
-     (cond-> {:api-key api-key}
-       api-endpoint (assoc :api-endpoint api-endpoint)))))
-
-(defn make-openai-client
-  "Create an OpenAIClient from environment variables.
-   Throws if OPENAI_API_KEY is not set."
-  []
-  (let [api-key (System/getenv "OPENAI_API_KEY")]
-    (when (or (nil? api-key) (string/blank? api-key))
-      (throw (ex-info "OPENAI_API_KEY environment variable is required"
-                      {:env-var "OPENAI_API_KEY"
-                       :hint "Set the OPENAI_API_KEY. See .envrc.example"})))
-    (->OpenAIClient api-key (System/getenv "OPENAI_API_ENDPOINT"))))
 
 ;; For testing
 (defrecord MockLLMClient [response-fn]
@@ -37,7 +17,7 @@
   [response-fn]
   (->MockLLMClient response-fn))
 
-(defrecord VLLMClient [api-key api-endpoint]
+(defrecord OpenAIClient [api-key api-endpoint]
   LLMClient
   (chat-completion [_ request]
     (let [url (str api-endpoint "/chat/completions")
@@ -48,11 +28,11 @@
                                :throw-exceptions true})]
       (json/parse-string (:body response) true))))
 
-(defn make-vllm-client
-  "Create a VLLMClient for vLLM endpoints
+(defn make-openai-client
+  "Create an OpenAIClient for OpenAI-compatible endpoints
    api-key defaults to \"sk-dummy\" for local vLLM."
   [api-endpoint & {:keys [api-key] :or {api-key "sk-dummy"}}]
   (when (or (nil? api-endpoint) (string/blank? api-endpoint))
-    (throw (ex-info "API endpoint is required for VLLMClient"
+    (throw (ex-info "API endpoint is required for OpenAIClient"
                     {:hint "Provide endpoint like http://localhost:8000/v1"})))
-  (->VLLMClient api-key api-endpoint))
+  (->OpenAIClient api-key api-endpoint))

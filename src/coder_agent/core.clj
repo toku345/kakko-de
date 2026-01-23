@@ -17,7 +17,7 @@
 
 (def default-client
   "Default LLM client created from environment variables."
-  (delay (llm/make-vllm-client (System/getenv "OPENAI_API_ENDPOINT"))))
+  (delay (llm/make-openai-client (System/getenv "OPENAI_API_ENDPOINT"))))
 
 (def default-output-handlers
   "Default output handlers for chat functions."
@@ -143,7 +143,7 @@
         :model "Qwen/Qwen3-Coder-30B-A3B-Instruct"))
 
 (comment
-  (def vllm-client (llm/make-vllm-client "http://localhost:8000/v1"))
+  (def vllm-client (llm/make-openai-client "http://localhost:8000/v1"))
 
   (def response (chat-completion vllm-client
                                  {:model "Qwen/Qwen3-Coder-30B-A3B-Instruct"

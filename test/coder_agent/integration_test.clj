@@ -8,7 +8,8 @@
   (testing "Real API call returns non-empty response."
     (is (some? (System/getenv "OPENAI_API_KEY"))
         "OPENAI_API_KEY must be set for integration tests.")
-    (let [client (llm/make-openai-client)
+    (let [client (llm/make-openai-client (System/getenv "OPENAI_API_ENDPOINT")
+                                         :api-key (System/getenv "OPENAI_API_KEY"))
           response (core/chat client "Say hello in one word.")]
       (is (string? response))
       (is (pos? (count response))))))
