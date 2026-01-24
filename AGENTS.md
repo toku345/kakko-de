@@ -71,12 +71,14 @@ clj -M:fmt/fix     # Auto-fix formatting
 ```
 
 **Error Message Guidelines:**
+
 - Include operation context: `"Failed to read file:"`
 - Include the path/resource: `/path/to/file`
 - Include the cause: `No such file or directory`
 - Help LLM agents decide next actions
 
 **Exception Boundaries:**
+
 - Protocol implementations catch domain errors, return ResultMaps
 - `execute-tool` is the fallback boundary for unexpected exceptions
 
@@ -114,12 +116,12 @@ clj -M:fmt/fix     # Auto-fix formatting
 ## Environment Variables
 
 | Variable | Description | Default |
-|----------|-------------|---------|
+| ---------- | ------------- | --------- |
 | `OPENAI_API_ENDPOINT` | API endpoint | (required) |
 | `OPENAI_API_KEY` | API key | `sk-dummy` |
 | `OPENAI_MODEL` | Model name | `gpt-5-mini` |
 | `DEBUG` | Enable debug logging | `false` |
-| `ECHO` | Show internal prompt (vLLM echo mode) | `false` |
+| `ECHO` | Show internal prompt (vLLM only, causes error on OpenAI API) | `false` |
 
 Setup: `cp .envrc.example .envrc && direnv allow`
 

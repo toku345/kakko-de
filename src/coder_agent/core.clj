@@ -4,7 +4,8 @@
             [coder-agent.llm :as llm]
             [coder-agent.tools :as tools]
             [coder-agent.debug :as debug]
-            [coder-agent.output :as output]))
+            [coder-agent.output :as output]
+            [clojure.string :as str]))
 
 (def default-model
   (or (System/getenv "OPENAI_MODEL")
@@ -125,7 +126,7 @@
 
 (defn -main [& args]
   (let [input (first args)
-        echo? (= "true" (System/getenv "ECHO"))]
+        echo? (some-> (System/getenv "ECHO") str/lower-case (= "true"))]
     (if input
       (println "Answer:" (chat @default-client input :echo echo?))
       (println "Please input your question as the first argument."))))

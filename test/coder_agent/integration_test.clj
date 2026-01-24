@@ -6,6 +6,8 @@
 
 (deftest ^:integration real-api-test
   (testing "Real API call returns non-empty response."
+    (is (some? (System/getenv "OPENAI_API_ENDPOINT"))
+        "OPENAI_API_ENDPOINT must be set for integration tests.")
     (is (some? (System/getenv "OPENAI_API_KEY"))
         "OPENAI_API_KEY must be set for integration tests.")
     (let [client (llm/make-openai-client (System/getenv "OPENAI_API_ENDPOINT")
