@@ -17,8 +17,10 @@
   "You are a helpful coding assistant. Use the provided tools to assist with coding tasks.")
 
 (def default-client
-  "Default LLM client. Uses OPENAI_API_ENDPOINT env var; api-key defaults to sk-dummy."
-  (delay (llm/make-openai-client (System/getenv "OPENAI_API_ENDPOINT"))))
+  "Default LLM client. Uses OPENAI_API_ENDPOINT and OPENAI_API_KEY env vars."
+  (delay (llm/make-openai-client (System/getenv "OPENAI_API_ENDPOINT")
+                                 :api-key (or (System/getenv "OPENAI_API_KEY")
+                                              "sk-dummy"))))
 
 (def default-output-handlers
   "Default output handlers for chat functions."
