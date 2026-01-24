@@ -27,12 +27,17 @@
                                              "Content-Type" "application/json"}
                                    :body (json/generate-string request)
                                    :throw-exceptions true
+                                   ;; socket-timeout is longer to accommodate LLM generation latency
                                    :conn-timeout 10000
                                    :socket-timeout 60000})]
           (json/parse-string (:body response) true))
         (catch Exception e
           (throw (ex-info "LLM API request failed"
-                          {:url url :cause (.getMessage e)} e)))))))
+                          {:url url
+                           :model (:model request)
+                           :message-count (count (:messages request))
+                           :exception-type (type e)
+                           :cause (.getMessage e)} e)))))))
 
 (defn make-openai-client
   "Create an OpenAIClient for OpenAI-compatible endpoints
