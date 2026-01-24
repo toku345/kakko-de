@@ -17,7 +17,7 @@
   "You are a helpful coding assistant. Use the provided tools to assist with coding tasks.")
 
 (def default-client
-  "Default LLM client created from environment variables."
+  "Default LLM client. Uses OPENAI_API_ENDPOINT env var; api-key defaults to sk-dummy."
   (delay (llm/make-openai-client (System/getenv "OPENAI_API_ENDPOINT"))))
 
 (def default-output-handlers
@@ -98,7 +98,8 @@
      :max-iterations    - Max tool loop iterations (default: 30)
      :system-prompt     - System prompt (default: default-system-prompt)
      :on-thinking       - Callback when thinking starts. Pass nil to disable. (default: prints emoji)
-     :on-tool-execution - Callback (fn [tool-call result]) after tool execution. Pass nil to disable. (default: print-tool-execution)"
+     :on-tool-execution - Callback (fn [tool-call result]) after tool execution. Pass nil to disable. (default: print-tool-execution)
+     :echo              - Enable echo mode for vLLM internal prompt logging (default: false)"
   [client user-input & {:keys [execute-tool-fn tools model max-iterations system-prompt
                                on-thinking on-tool-execution echo]
                         :or {execute-tool-fn tools/execute-tool
