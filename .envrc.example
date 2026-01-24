@@ -5,7 +5,9 @@
 # API Key (required)
 export OPENAI_API_KEY=sk-your-api-key
 
-# API Endpoint (optional - omit for default OpenAI API)
+# API Endpoint (required)
+# For OpenAI API:
+# export OPENAI_API_ENDPOINT=https://api.openai.com/v1
 # For local LLM (e.g., vLLM, Ollama):
 # export OPENAI_API_ENDPOINT=http://localhost:8000/v1
 

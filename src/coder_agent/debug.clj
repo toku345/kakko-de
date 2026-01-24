@@ -197,3 +197,29 @@
     (-> (extract-tool-execution-summary tool-call result)
         format-tool-execution-summary
         output-fn)))
+
+(defn extract-internal-prompt
+  "Extract internal prompt text from vLLM prompt_logprobs.
+   Each item contains a map with token info including :decoded_token."
+  [prompt-logprobs]
+  (->> prompt-logprobs
+       (remove nil?)
+       (mapcat (fn [item]
+                 (map (fn [[_ v]] (:decoded_token v)) item)))
+       (apply str)))
+
+(defn format-internal-prompt
+  "Format internal prompt for log output."
+  [prompt-logprobs]
+  (str "\n========== INTERNAL PROMPT ==========\n"
+       (extract-internal-prompt prompt-logprobs)
+       "\n=====================================\n"))
+
+(defn log-internal-prompt
+  "Log internal prompt unconditionally (not tied to DEBUG)
+   Options:
+     :output-fn - Output function (default: println)"
+  [prompt-logprobs & {:keys [output-fn]
+                      :or {output-fn println}}]
+  (when (seq prompt-logprobs)
+    (output-fn (format-internal-prompt prompt-logprobs))))

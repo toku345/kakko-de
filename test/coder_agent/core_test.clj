@@ -44,10 +44,7 @@
                          (swap! call-count inc)
                          (if (= 1 @call-count)
                            {:choices [{:message {:tool_calls [{:id "1"
-                                                               :function {:name "write_file"
-                                                                          :arguments (json/generate-string
-                                                                                      {:file_path "test.txt"
-                                                                                       :content "hello"})}}]}}]}
+                                                               :function {:name "write_file"}}]}}]}
                            {:choices [{:message {:content "File written successfully."}}]})))
           mock-execute (fn [_tc] {:success true})
           result (core/chat mock-client "Write hello to test.txt"
@@ -125,7 +122,30 @@
                                  [{:role "user" :content "Write"}]
                                  :execute-tool-fn (constantly {:success true})
                                  :on-tool-execution faulty-callback)]
-      (is (some? result)))))
+      (is (some? result))))
+
+  (testing "echo adds :echo true to request"
+    (let [captured-request (atom nil)
+          mock-client (llm/make-mock-client
+                       (fn [request]
+                         (reset! captured-request request)
+                         {:choices [{:message {:content "OK"}}]}))]
+      (core/chat-step mock-client
+                      [{:role "user" :content "test"}]
+                      :echo true
+                      :on-tool-execution nil)
+      (is (true? (:echo @captured-request)))))
+
+  (testing "echo defaults to false (not in request)"
+    (let [captured-request (atom nil)
+          mock-client (llm/make-mock-client
+                       (fn [request]
+                         (reset! captured-request request)
+                         {:choices [{:message {:content "OK"}}]}))]
+      (core/chat-step mock-client
+                      [{:role "user" :content "test"}]
+                      :on-tool-execution nil)
+      (is (nil? (:echo @captured-request))))))
 
 (deftest format-tool-result-message-test
   (testing "formats successful tool result correctly"

@@ -4,7 +4,8 @@
             [coder-agent.llm :as llm]
             [coder-agent.tools :as tools]
             [coder-agent.debug :as debug]
-            [coder-agent.output :as output]))
+            [coder-agent.output :as output]
+            [clojure.string :as str]))
 
 (def default-model
   (or (System/getenv "OPENAI_MODEL")
@@ -16,8 +17,10 @@
   "You are a helpful coding assistant. Use the provided tools to assist with coding tasks.")
 
 (def default-client
-  "Default LLM client created from environment variables."
-  (delay (llm/make-openai-client)))
+  "Default LLM client. Uses OPENAI_API_ENDPOINT and OPENAI_API_KEY env vars."
+  (delay (llm/make-openai-client (System/getenv "OPENAI_API_ENDPOINT")
+                                 :api-key (or (System/getenv "OPENAI_API_KEY")
+                                              "sk-dummy"))))
 
 (def default-output-handlers
   "Default output handlers for chat functions."
@@ -59,15 +62,19 @@
    Returns:
      {:status :continue :messages [...]} - continue with updated messages
      {:status :complete :content ...}    - final content (may be nil)"
-  [client messages & {:keys [model tools execute-tool-fn on-tool-execution]
+  [client messages & {:keys [model tools execute-tool-fn on-tool-execution echo]
                       :or {model default-model
                            tools available-tools
                            execute-tool-fn tools/execute-tool
-                           on-tool-execution (:on-tool-execution default-output-handlers)}}]
-  (let [request {:model model :messages messages :tools tools}
+                           on-tool-execution (:on-tool-execution default-output-handlers)
+                           echo false}}]
+  (let [request (cond-> {:model model :messages messages :tools tools}
+                  echo (assoc :echo true))
         _ (debug/log-request request)
         response (chat-completion client request)
         _ (debug/log-response response)
+        _ (when echo
+            (debug/log-internal-prompt (:prompt_logprobs response)))
         message (-> response :choices first :message)]
     (if (has-tool-calls? message)
       (let [tools-results (mapv
@@ -93,16 +100,18 @@
      :max-iterations    - Max tool loop iterations (default: 30)
      :system-prompt     - System prompt (default: default-system-prompt)
      :on-thinking       - Callback when thinking starts. Pass nil to disable. (default: prints emoji)
-     :on-tool-execution - Callback (fn [tool-call result]) after tool execution. Pass nil to disable. (default: print-tool-execution)"
+     :on-tool-execution - Callback (fn [tool-call result]) after tool execution. Pass nil to disable. (default: print-tool-execution)
+     :echo              - Enable echo mode for vLLM internal prompt logging (default: false)"
   [client user-input & {:keys [execute-tool-fn tools model max-iterations system-prompt
-                               on-thinking on-tool-execution]
+                               on-thinking on-tool-execution echo]
                         :or {execute-tool-fn tools/execute-tool
                              tools available-tools
                              model default-model
                              max-iterations 30
                              system-prompt default-system-prompt
                              on-thinking (:on-thinking default-output-handlers)
-                             on-tool-execution (:on-tool-execution default-output-handlers)}}]
+                             on-tool-execution (:on-tool-execution default-output-handlers)
+                             echo false}}]
   (safe-invoke on-thinking)
   (loop [messages (build-initial-messages system-prompt user-input)
          iteration 0]
@@ -112,15 +121,17 @@
                             :model model
                             :tools tools
                             :execute-tool-fn execute-tool-fn
-                            :on-tool-execution on-tool-execution)]
+                            :on-tool-execution on-tool-execution
+                            :echo echo)]
       (case (:status result)
         :continue (recur (:messages result) (inc iteration))
         :complete (:content result)))))
 
 (defn -main [& args]
-  (let [input (first args)]
+  (let [input (first args)
+        echo? (some-> (System/getenv "ECHO") str/lower-case (= "true"))]
     (if input
-      (println "Answer:" (chat @default-client input))
+      (println "Answer:" (chat @default-client input :echo echo?))
       (println "Please input your question as the first argument."))))
 
 (comment
@@ -134,3 +145,16 @@
         :model "Qwen/Qwen3-Coder-30B-A3B-Instruct")
   (chat client "Read the number from test_output_count.txt and increment it by 1, then write it back."
         :model "Qwen/Qwen3-Coder-30B-A3B-Instruct"))
+
+(comment
+  (def vllm-client (llm/make-openai-client "http://localhost:8000/v1"))
+
+  (def response (chat-completion vllm-client
+                                 {:model "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+                                  :messages [{:role "system"
+                                              :content "You are a helpful coding assistant."}
+                                             {:role "user"
+                                              :content "What is Clojure?"}]
+                                  :echo true}))
+
+  (debug/log-internal-prompt (:prompt_logprobs response)))
