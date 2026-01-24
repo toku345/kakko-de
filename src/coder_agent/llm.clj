@@ -20,13 +20,19 @@
 (defrecord OpenAIClient [api-key api-endpoint]
   LLMClient
   (chat-completion [_ request]
-    (let [url (str api-endpoint "/chat/completions")
-          response (http/post url
-                              {:headers {"Authorization" (str "Bearer " api-key)
-                                         "Content-Type" "application/json"}
-                               :body (json/generate-string request)
-                               :throw-exceptions true})]
-      (json/parse-string (:body response) true))))
+    (let [url (str api-endpoint "/chat/completions")]
+      (try
+        (let [response (http/post url
+                                  {:headers {"Authorization" (str "Bearer " api-key)
+                                             "Content-Type" "application/json"}
+                                   :body (json/generate-string request)
+                                   :throw-exceptions true
+                                   :conn-timeout 10000
+                                   :socket-timeout 60000})]
+          (json/parse-string (:body response) true))
+        (catch Exception e
+          (throw (ex-info "LLM API request failed"
+                          {:url url :cause (.getMessage e)} e)))))))
 
 (defn make-openai-client
   "Create an OpenAIClient for OpenAI-compatible endpoints
