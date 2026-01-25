@@ -134,3 +134,11 @@ Setup: `cp .envrc.example .envrc && direnv allow`
 
 - Commit messages and PR descriptions in English
 - Conventional Commits format: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`
+
+## ROADMAP.md Maintenance
+
+When closing or creating issues, consider updating `ROADMAP.md`:
+
+- Update checkboxes for completed items
+- Reflect phase progress
+- Add newly created issues to the appropriate section
